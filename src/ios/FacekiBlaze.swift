@@ -4,15 +4,15 @@ import FACEKI_BLAZE_IOS
 @objc(FacekiBlaze) class FacekiBlaze : CDVPlugin {
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
-        let verificationLink = command.arguments[0] as? String ?? ""
+        let url = command.arguments[0] as? String ?? ""
         
         DispatchQueue.main.async {
             let sdkVC = Logger.initiateSMSDK(
-                verificationLink: verificationLink,
-                workflowId: "", // Optional
+                verificationLink: url,
+                workflowId: "",
                 setOnComplete: { data in
-                    let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: data as? [String: Any])
-                    self.commandDelegate!.send(pluginResult, callbackId: command.callbackId)
+                    let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: data as? [String: Any])
+                    self.commandDelegate!.send(result, callbackId: command.callbackId)
                 },
                 onRedirectBack: {
                     self.viewController.dismiss(animated: true, completion: nil)
