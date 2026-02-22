@@ -1,41 +1,11 @@
 {
   "name": "cordova-plugin-faceki-blaze",
   "version": "1.0.0",
-  "description": "Cordova plugin for Faceki Blaze SDK (iOS & Android) - OutSystems Compatible",
   "cordova": {
     "id": "cordova-plugin-faceki-blaze",
-    "platforms": [
-      "android",
-      "ios"
-    ]
+    "platforms": ["android", "ios"]
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/faceki/blaze-ios-sdk"
-  },
-  "keywords": [
-    "ecosystem:cordova",
-    "cordova-android",
-    "cordova-ios",
-    "faceki",
-    "kyc",
-    "biometrics",
-    "outsystems"
-  ],
-  "engines": [
-    {
-      "name": "cordova",
-      "version": ">=9.0.0"
-    },
-    {
-      "name": "cordova-android",
-      "version": ">=9.0.0"
-    },
-    {
-      "name": "cordova-ios",
-      "version": ">=6.0.0"
-    }
-  ],
+  "keywords": ["ecosystem:cordova", "faceki", "outsystems"],
   "author": "Faceki",
   "license": "MIT"
 }
