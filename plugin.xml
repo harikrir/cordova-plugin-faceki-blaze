@@ -21,7 +21,7 @@
     </platform>
 
     <platform name="ios">
-          <preference name="SwiftVersion" value="5" />
+      
         <config-file target="config.xml" parent="/*">
             <feature name="FacekiBlaze">
                 <param name="ios-package" value="FacekiBlaze" />
@@ -42,4 +42,5 @@
         </podspec>
     </platform>
 </plugin>
+
 
