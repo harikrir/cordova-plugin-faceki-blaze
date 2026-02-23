@@ -4,28 +4,36 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 import org.json.JSONArray;
 import org.json.JSONException;
-import com.faceki.blaze_android_sdk.FaceKi;
-import com.faceki.blaze_android_sdk.VerificationResult;
+
+import com.faceki.android.FaceKi; // <-- correct package per FACEKI docs
+import com.faceki.android.VerificationResult;
+import com.faceki.android.KycResponseHandler;
 
 public class FacekiBlaze extends CordovaPlugin {
+
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
-        if (action.equals("startVerification")) {
-            String url = args.getString(0);
-            String workflowId = args.optString(1, ""); // Get workflowId (arg index 1)
-            
+        if ("startVerification".equals(action)) {
+            final String verificationLink = args.getString(0);          // link id from FACEKI API (response.data)
+            final String recordIdentifier = args.optString(1, "");      // Android expects a record identifier
+
             cordova.getActivity().runOnUiThread(() -> {
-                FaceKi.INSTANCE.startKycVerification(
-                    cordova.getActivity(),
-                    url,
-                    workflowId, // Passing the workflowId here
-                    (json, result) -> {
+                KycResponseHandler handler = new KycResponseHandler() {
+                    @Override
+                    public void handleKycResponse(String json, VerificationResult result) {
                         if (result instanceof VerificationResult.ResultOk) {
-                            callbackContext.success(json);
+                            callbackContext.success(json != null ? json : "{}");
                         } else {
-                            callbackContext.error("Verification failed or cancelled");
+                            callbackContext.error("Verification failed or canceled");
                         }
                     }
+                };
+
+                FaceKi.startKycVerification(
+                    cordova.getActivity(),
+                    verificationLink,
+                    recordIdentifier,
+                    handler
                 );
             });
             return true;
