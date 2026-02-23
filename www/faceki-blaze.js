@@ -1,10 +1,16 @@
 var exec = require('cordova/exec');
 
 var FacekiBlaze = {
-    // Now accepting both URL and WorkflowID
-    startVerification: function (verificationUrl, workflowId, success, error) {
-        exec(success, error, 'FacekiBlaze', 'startVerification', [verificationUrl, workflowId]);
-    }
+  /**
+   * @param {string} verificationLink - UUID from FACEKI "Generate KYC Link" API (response.data)
+   * @param {string} recordIdentifier  - Optional identifier you track on Android (pass "" on iOS if not used)
+   * @returns {Promise<string>} JSON string payload from FACEKI
+   */
+  startVerification: function (verificationLink, recordIdentifier) {
+    return new Promise(function (resolve, reject) {
+      exec(resolve, reject, 'FacekiBlaze', 'startVerification', [verificationLink, recordIdentifier]);
+    });
+  }
 };
 
 module.exports = FacekiBlaze;
