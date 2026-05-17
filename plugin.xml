@@ -8,69 +8,70 @@
     <description>Faceki Blaze Cordova Plugin (iOS + Android)</description>
     <license>MIT</license>
 
-    <!-- ================= JS MODULE ================= -->
+    <!-- ✅ REQUIRED (Fixes USESWIFTLANGUAGEVERSION error) -->
+    <preference name="USESWIFTLANGUAGEVERSION" default="5.0" />
+
+    <!-- ================= JS ================= -->
     <js-module src="www/FacekiBlaze.js" name="FacekiBlaze">
         <clobbers target="cordova.plugins.FacekiBlaze" />
     </js-module>
 
     <!-- ================= iOS ================= -->
+    <platform name="ios">
 
-        <preference name="USESWIFTLANGUAGEVERSION" default="5.0" />
- <platform name="ios">
+        <!-- Register plugin -->
+        <config-file target="config.xml" parent="/*">
+            <feature name="FacekiBlaze">
+                <param name="ios-package" value="FacekiBlaze" />
+            </feature>
+        </config-file>
 
-    <!-- Register plugin -->
-    <config-file target="config.xml" parent="/*">
-        <feature name="FacekiBlaze">
-            <param name="ios-package" value="FacekiBlaze" />
-        </feature>
-    </config-file>
+        <!-- ✅ Swift version -->
+        <preference name="UseSwiftLanguageVersion" value="$USESWIFTLANGUAGEVERSION" />
 
-    <!-- ✅ IMPORTANT: use variable -->
-    <preference name="UseSwiftLanguageVersion" value="$USESWIFTLANGUAGEVERSION" />
+        <!-- ✅ Swift file -->
+        <source-file src="src/ios/FacekiBlaze.swift" />
 
-    <!-- Swift file -->
-    <source-file src="src/ios/FacekiBlaze.swift" />
+        <!-- ✅ Faceki iOS SDK -->
+        <podspec>
+            <pods>
+                <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
+            </pods>
+        </podspec>
 
-    <!-- CocoaPods -->
-    <podspec>
-        <pods>
-            <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
-        </pods>
-    </podspec>
+        <!-- ✅ Camera permission -->
+        <edit-config file="*-Info.plist"
+                     target="NSCameraUsageDescription"
+                     mode="merge">
+            <string>Camera is required for identity verification</string>
+        </edit-config>
 
-    <!-- Camera permission -->
-    <edit-config file="*-Info.plist"
-                 target="NSCameraUsageDescription"
-                 mode="merge">
-        <string>Camera is required for identity verification</string>
-    </edit-config>
-
-</platform>
+    </platform>
 
     <!-- ================= ANDROID ================= -->
-<platform name="android">
+    <platform name="android">
 
-    <!-- Register plugin -->
-    <config-file target="res/xml/config.xml" parent="/*">
-        <feature name="FacekiBlaze">
-            <param name="android-package" value="com.faceki.blaze.FacekiBlaze" />
-        </feature>
-    </config-file>
+        <!-- Register plugin -->
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="FacekiBlaze">
+                <param name="android-package" value="com.faceki.blaze.FacekiBlaze" />
+            </feature>
+        </config-file>
 
-    <!-- Java file -->
-    <source-file src="src/android/FacekiBlaze.java" target-dir="src/com/faceki/blaze" />
+        <!-- ✅ Java file -->
+        <source-file src="src/android/FacekiBlaze.java" target-dir="src/com/faceki/blaze" />
 
-    <!-- ✅ CORRECT WAY TO ADD JITPACK -->
-    <framework src="https://jitpack.io" custom="true" type="gradleRepository" />
+        <!-- ✅ JitPack repository (FIXED) -->
+        <framework src="https://jitpack.io" custom="true" type="gradleRepository" />
 
-    <!-- ✅ FACEKI SDK (version placeholder for now) -->
-    <framework src="com.github.faceki:blaze-android-sdk:TAG" />
+        <!-- ✅ Faceki Android SDK (USE VALID TAG) -->
+        <framework src="com.github.faceki:blaze-android-sdk:v1.0.2" />
 
-    <!-- Internet permission -->
-    <config-file target="AndroidManifest.xml" parent="/manifest">
-        <uses-permission android:name="android.permission.INTERNET" />
-    </config-file>
+        <!-- ✅ Internet permission -->
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.INTERNET" />
+        </config-file>
 
-</platform>
+    </platform>
 
 </plugin>
