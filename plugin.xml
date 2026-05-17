@@ -14,62 +14,64 @@
     </js-module>
 
     <!-- ================= iOS ================= -->
-    <platform name="ios">
+  <platform name="ios">
 
-        <!-- Register plugin -->
-        <config-file target="config.xml" parent="/*">
-            <feature name="FacekiBlaze">
-                <param name="ios-package" value="FacekiBlaze" />
-            </feature>
-        </config-file>
+    <!-- Register plugin -->
+    <config-file target="config.xml" parent="/*">
+        <feature name="FacekiBlaze">
+            <param name="ios-package" value="FacekiBlaze" />
+        </feature>
+    </config-file>
 
-        <!-- Swift file -->
-        <source-file src="src/ios/FacekiBlaze.swift" />
+    <!-- ✅ Correct Swift variable for MABS -->
+    <preference name="UseSwiftLanguageVersion" value="5.0" />
 
-        <!-- Swift version -->
-        <preference name="UseSwiftLanguageVersion" value="5.0" />
+    <!-- ✅ ALSO REQUIRED FOR MABS -->
+    <preference name="USESWIFTLANGUAGEVERSION" value="5.0" />
 
-        <!-- CocoaPod dependency -->
-        <podspec>
-            <pods>
-                <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
-            </pods>
-        </podspec>
+    <!-- Swift file -->
+    <source-file src="src/ios/FacekiBlaze.swift" />
 
-        <!-- Camera Permission -->
-        <edit-config file="*-Info.plist"
-                     target="NSCameraUsageDescription"
-                     mode="merge">
-            <string>Camera is required for identity verification</string>
-        </edit-config>
+    <!-- CocoaPods -->
+    <podspec>
+        <pods>
+            <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
+        </pods>
+    </podspec>
 
-    </platform>
+    <!-- Camera permission -->
+    <edit-config file="*-Info.plist"
+                 target="NSCameraUsageDescription"
+                 mode="merge">
+        <string>Camera is required for identity verification</string>
+    </edit-config>
+
+</platform>
 
     <!-- ================= ANDROID ================= -->
-    <platform name="android">
+<platform name="android">
 
-        <!-- Register plugin -->
-        <config-file target="res/xml/config.xml" parent="/*">
-            <feature name="FacekiBlaze">
-                <param name="android-package" value="com.faceki.blaze.FacekiBlaze" />
-            </feature>
-        </config-file>
+    <!-- Register plugin -->
+    <config-file target="res/xml/config.xml" parent="/*">
+        <feature name="FacekiBlaze">
+            <param name="android-package" value="com.faceki.blaze.FacekiBlaze" />
+        </feature>
+    </config-file>
 
-        <!-- Java source -->
-        <source-file src="src/android/FacekiBlaze.java"
-                     target-dir="src/com/faceki/blaze" />
+    <!-- Java source -->
+    <source-file src="src/android/FacekiBlaze.java" target-dir="src/com/faceki/blaze" />
 
-        <!-- Add JitPack repo -->
-        <framework src="https://jitpack.io" custom="true" type="gradleReference" />
+    <!-- ✅ JitPack repository -->
+    <framework src="https://jitpack.io" type="gradleRepository" />
 
-        <!-- Faceki SDK dependency (IMPORTANT: replace version if needed) -->
-        <framework src="com.github.faceki:blaze-android-sdk:1.0.3" type="gradle" />
+    <!-- ✅ Faceki SDK dependency -->
+    <framework src="com.github.faceki:blaze-android-sdk:1.0.3" type="gradle" />
 
-        <!-- Internet permission (safe to include) -->
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="android.permission.INTERNET" />
-        </config-file>
+    <!-- Permissions -->
+    <config-file target="AndroidManifest.xml" parent="/manifest">
+        <uses-permission android:name="android.permission.INTERNET" />
+    </config-file>
 
-    </platform>
+</platform>
 
 </plugin>
