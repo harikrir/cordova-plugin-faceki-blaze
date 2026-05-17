@@ -14,7 +14,9 @@
     </js-module>
 
     <!-- ================= iOS ================= -->
-  <platform name="ios">
+
+        <preference name="USESWIFTLANGUAGEVERSION" default="5.0" />
+ <platform name="ios">
 
     <!-- Register plugin -->
     <config-file target="config.xml" parent="/*">
@@ -23,11 +25,8 @@
         </feature>
     </config-file>
 
-    <!-- ✅ Correct Swift variable for MABS -->
-    <preference name="UseSwiftLanguageVersion" value="5.0" />
-
-    <!-- ✅ ALSO REQUIRED FOR MABS -->
-    <preference name="USESWIFTLANGUAGEVERSION" value="5.0" />
+    <!-- ✅ IMPORTANT: use variable -->
+    <preference name="UseSwiftLanguageVersion" value="$USESWIFTLANGUAGEVERSION" />
 
     <!-- Swift file -->
     <source-file src="src/ios/FacekiBlaze.swift" />
@@ -58,16 +57,16 @@
         </feature>
     </config-file>
 
-    <!-- Java source -->
+    <!-- Java file -->
     <source-file src="src/android/FacekiBlaze.java" target-dir="src/com/faceki/blaze" />
 
-    <!-- ✅ JitPack repository -->
-    <framework src="https://jitpack.io" type="gradleRepository" />
+    <!-- ✅ CORRECT WAY TO ADD JITPACK -->
+    <framework src="https://jitpack.io" custom="true" type="gradleRepository" />
 
-    <!-- ✅ Faceki SDK dependency -->
-    <framework src="com.github.faceki:blaze-android-sdk:1.0.3" type="gradle" />
+    <!-- ✅ FACEKI SDK (version placeholder for now) -->
+    <framework src="com.github.faceki:blaze-android-sdk:TAG" />
 
-    <!-- Permissions -->
+    <!-- Internet permission -->
     <config-file target="AndroidManifest.xml" parent="/manifest">
         <uses-permission android:name="android.permission.INTERNET" />
     </config-file>
