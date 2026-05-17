@@ -1,46 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-faceki-blaze" version="1.0.0">
+<plugin id="cordova-plugin-faceki-blaze" version="1.0.0"
+    xmlns="http://apache.org/cordova/ns/plugins/1.0">
+
     <name>FacekiBlaze</name>
-    <js-module src="www/faceki-blaze.js" name="FacekiBlaze">
-        <clobbers target="FacekiBlaze" />
+
+    <!-- JS -->
+    <js-module src="www/FacekiBlaze.js" name="FacekiBlaze">
+        <clobbers target="cordova.plugins.FacekiBlaze"/>
     </js-module>
 
+    <!-- ================= iOS ================= -->
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="FacekiBlaze">
+                <param name="ios-package" value="FacekiBlaze"/>
+            </feature>
+        </config-file>
+
+        <preference name="UseSwiftLanguageVersion" value="5"/>
+
+        <source-file src="src/ios/FacekiBlaze.swift"/>
+
+        <podspec>
+            <pods>
+                <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0"/>
+            </pods>
+        </podspec>
+
+        <edit-config target="NSCameraUsageDescription" file="*-Info.plist" mode="merge">
+            <string>Camera is required for identity verification</string>
+        </edit-config>
+    </platform>
+
+    <!-- ================= ANDROID ================= -->
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="FacekiBlaze">
-                <param name="android-package" value="com.faceki.plugin.FacekiBlaze" />
+                <param name="android-package" value="com.faceki.blaze.FacekiBlaze"/>
             </feature>
         </config-file>
-        <config-file target="AndroidManifest.xml" parent="/*">
-            <uses-permission android:name="android.permission.CAMERA" />
-            <uses-permission android:name="android.permission.INTERNET" />
-        </config-file>
-        
-        <framework src="src/android/faceki-build.gradle" custom="true" type="gradleReference" />
-        <source-file src="src/android/FacekiBlaze.java" target-dir="src/com/faceki/plugin" />
+
+        <source-file src="src/android/FacekiBlaze.java" target-dir="src/com/faceki/blaze"/>
+
+        <!-- Gradle -->
+        <framework src="https://jitpack.io" custom="true" type="gradleReference"/>
+        <framework src="com.github.faceki:blaze-android-sdk:1.0.3" type="gradle"/>
     </platform>
 
-    <platform name="ios">
-      
-        <config-file target="config.xml" parent="/*">
-            <feature name="FacekiBlaze">
-                <param name="ios-package" value="FacekiBlaze" />
-            </feature>
-        </config-file>
-        <config-file target="*-Info.plist" parent="NSCameraUsageDescription">
-            <string>Camera access is required for identity verification.</string>
-        </config-file>
-
-        <source-file src="src/ios/FacekiBlaze.swift" />
-        <podspec>
-            <config>
-                <source url="https://github.com/CocoaPods/Specs.git"/>
-            </config>
-            <pods use-frameworks="true">
-                <pod name="FACEKI-BLAZE-IOS" spec="~> 3.2" />
-            </pods>
-        </podspec>
-    </platform>
 </plugin>
-
-
+``
