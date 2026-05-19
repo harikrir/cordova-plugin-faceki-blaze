@@ -58,7 +58,7 @@
                      target-dir="app/src/main/java/com/faceki/blaze" />
 
         <!-- ✅ Add JitPack repository properly -->
-        <framework src="https://jitpack.io" custom="true" type="gradleRepository" />
+      //  <framework src="https://jitpack.io" custom="true" type="gradleRepository" />
 
         <!-- ✅ Faceki SDK (REMOVE hardcoded version if dynamic needed) -->
         <framework src="com.github.faceki:blaze-android-sdk:1.0.2" />
