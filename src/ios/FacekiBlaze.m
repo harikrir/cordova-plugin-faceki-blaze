@@ -3,7 +3,7 @@
 #import <UIKit/UIKit.h>
 #import <Cordova/CDV.h>
 
-// ✅ Import Swift module (still required for linking)
+// ✅ Required to link Swift Pod
 @import FACEKI_BLAZE_IOS;
 
 @interface FacekiBlaze ()
@@ -54,8 +54,13 @@
 
         UIViewController *sdkVC = nil;
 
-        // ✅ ✅ DYNAMIC SWIFT CLASS LOADING (CRITICAL FIX)
-        Class loggerClass = NSClassFromString(@"Logger");
+        // ✅ ✅ CRITICAL FIX: Correct runtime class name
+        Class loggerClass = NSClassFromString(@"FACEKI_BLAZE_IOS.Logger");
+
+        // ✅ Fallback (rare cases)
+        if (!loggerClass) {
+            loggerClass = NSClassFromString(@"Logger");
+        }
 
         if (loggerClass) {
 
@@ -91,7 +96,7 @@
 
         // ✅ Safety fallback
         if (!sdkVC) {
-            NSLog(@"Faceki ERROR: SDK init failed");
+            NSLog(@"Faceki ERROR: Logger class or method not found");
             self.isProcessing = NO;
             [self sendError:@"SDK_INIT_FAILED"];
             return;
@@ -187,3 +192,4 @@
 }
 
 @end
+``
