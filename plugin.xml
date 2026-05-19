@@ -14,32 +14,36 @@
     </js-module>
 
     <!-- ================= iOS ================= -->
-    <platform name="ios">
+ <platform name="ios">
 
-        <!-- ✅ Register plugin -->
-        <config-file target="config.xml" parent="/*">
-            <feature name="FacekiBlaze">
-                <param name="ios-package" value="FacekiBlaze" />
-            </feature>
-        </config-file>
+    <!-- ✅ Register plugin -->
+    <config-file target="config.xml" parent="/*">
+        <feature name="FacekiBlaze">
+            <param name="ios-package" value="FacekiBlaze" />
+        </feature>
+    </config-file>
 
-        
+    <!-- ✅ Objective-C files -->
+    <source-file src="src/ios/FacekiBlaze.m" />
+    <header-file src="src/ios/FacekiBlaze.h" />
 
-        <!-- ✅ Use Objective-C implementation now -->
-        <source-file src="src/ios/FacekiBlaze.m" />
-        <header-file src="src/ios/FacekiBlaze.h" />
+    <!-- ✅ CORRECT CocoaPods usage -->
+    <podspec>
+        <pods>
+            <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
+        </pods>
+    </podspec>
 
-        <!-- ✅ CocoaPods dependency -->
-        <framework src="FACEKI-BLAZE-IOS" type="podspec" spec="~> 3.0.0" />
 
-        <!-- ✅ Permissions -->
-        <edit-config file="*-Info.plist"
-                     target="NSCameraUsageDescription"
-                     mode="merge">
-            <string>Camera is required for identity verification</string>
-        </edit-config>
 
-    </platform>
+    <!-- ✅ Permissions -->
+    <edit-config file="*-Info.plist"
+                 target="NSCameraUsageDescription"
+                 mode="merge">
+        <string>Camera is required for identity verification</string>
+    </edit-config>
+
+</platform>
 
     <!-- ================= ANDROID ================= -->
     <platform name="android">
