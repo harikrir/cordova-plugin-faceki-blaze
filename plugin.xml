@@ -8,40 +8,40 @@
     <description>Faceki Blaze Cordova Plugin (iOS + Android)</description>
     <license>MIT</license>
 
-
     <!-- ================= JS ================= -->
     <js-module src="www/FacekiBlaze.js" name="FacekiBlaze">
         <clobbers target="cordova.plugins.FacekiBlaze" />
     </js-module>
 
     <!-- ================= iOS ================= -->
-   <platform name="ios">
+    <platform name="ios">
 
-    <config-file target="config.xml" parent="/*">
-        <feature name="FacekiBlaze">
-            <param name="ios-package" value="FacekiBlaze" />
-        </feature>
-    </config-file>
+        <!-- ✅ Register plugin -->
+        <config-file target="config.xml" parent="/*">
+            <feature name="FacekiBlaze">
+                <param name="ios-package" value="FacekiBlaze" />
+            </feature>
+        </config-file>
 
-    <!-- ✅ Directly set Swift version -->
-    <preference name="UseSwiftLanguageVersion" value="5.0" />
+        <!-- ✅ Required for Swift-based pod dependency -->
+        <preference name="UseSwiftLanguageVersion" value="5.0" />
+        <preference name="SwiftVersion" value="5.0" />
 
-    <source-file src="src/ios/FacekiBlaze.swift" />
+        <!-- ✅ Use Objective-C implementation now -->
+        <source-file src="src/ios/FacekiBlaze.m" />
+        <header-file src="src/ios/FacekiBlaze.h" />
 
-    <podspec>
-        <pods>
-            <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
-        </pods>
-    </podspec>
+        <!-- ✅ CocoaPods dependency -->
+        <framework src="FACEKI-BLAZE-IOS" type="podspec" spec="~> 3.0.0" />
 
-    <edit-config file="*-Info.plist"
-                 target="NSCameraUsageDescription"
-                 mode="merge">
-        <string>Camera is required for identity verification</string>
-    </edit-config>
+        <!-- ✅ Permissions -->
+        <edit-config file="*-Info.plist"
+                     target="NSCameraUsageDescription"
+                     mode="merge">
+            <string>Camera is required for identity verification</string>
+        </edit-config>
 
-</platform>
-
+    </platform>
 
     <!-- ================= ANDROID ================= -->
     <platform name="android">
@@ -53,22 +53,16 @@
             </feature>
         </config-file>
 
-        <!-- ✅ Java/Kotlin file -->
+        <!-- ✅ Source file -->
         <source-file src="src/android/FacekiBlaze.java"
                      target-dir="app/src/main/java/com/faceki/blaze" />
 
-  
-
-        <!-- ✅ Faceki SDK (REMOVE hardcoded version if dynamic needed) -->
+        <!-- ✅ SDK dependency -->
         <framework src="com.github.faceki:blaze-android-sdk:1.0.2" />
 
-        <!-- ✅ Internet permission -->
+        <!-- ✅ Permissions (merge under same manifest) -->
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.INTERNET" />
-        </config-file>
-
-        <!-- ✅ Optional (recommended for camera stability) -->
-        <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.CAMERA" />
         </config-file>
 
