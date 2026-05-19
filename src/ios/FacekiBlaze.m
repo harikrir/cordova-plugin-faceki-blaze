@@ -1,7 +1,10 @@
 #import "FacekiBlaze.h"
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#import <FACEKI_BLAZE_IOS/FACEKI_BLAZE_IOS-Swift.h> // Adjust if needed
+#import <Cordova/CDV.h>
+
+// ✅ FIX: Correct way to import Swift Pod
+@import FACEKI_BLAZE_IOS;
 
 @interface FacekiBlaze ()
 
@@ -49,22 +52,50 @@
 
     dispatch_async(dispatch_get_main_queue(), ^{
 
-        UIViewController *sdkVC = [Logger initiateSMSDKWithVerificationLink:verificationLink
-                                                                 workflowId:workflowId
-                                                              setOnComplete:^(NSDictionary * _Nonnull data) {
-            [self onComplete:data];
+        // ✅ SAFER: declare type loosely to avoid header mismatch issues
+        UIViewController *sdkVC = nil;
+
+        // ✅ Use performSelector to avoid compile-time selector issues
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+
+        SEL selector = NSSelectorFromString(@"initiateSMSDKWithVerificationLink:workflowId:setOnComplete:redirectBack:selfieImageUrl:cardGuideUrl:");
+
+        if ([Logger respondsToSelector:selector]) {
+
+            sdkVC = ((UIViewController * (*)(id, SEL, NSString *, NSString *, id, id, id, id))
+                     [Logger methodForSelector:selector])(
+                Logger,
+                selector,
+                verificationLink,
+                workflowId,
+                ^(NSDictionary *data) {
+                    [self onComplete:data];
+                },
+                ^{
+                    [self onRedirectBack];
+                },
+                nil,
+                nil
+            );
         }
-                                                               redirectBack:^{
-            [self onRedirectBack];
+
+#pragma clang diagnostic pop
+
+        // ✅ Safety fallback
+        if (!sdkVC) {
+            self.isProcessing = NO;
+            [self sendError:@"SDK_INIT_FAILED"];
+            return;
         }
-                                                          selfieImageUrl:nil
-                                                            cardGuideUrl:nil];
 
         // ✅ Navigation handling
         if (self.viewController.navigationController) {
             [self.viewController.navigationController pushViewController:sdkVC animated:YES];
         } else {
-            UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:sdkVC];
+            UINavigationController *navController =
+            [[UINavigationController alloc] initWithRootViewController:sdkVC];
+
             [self.viewController presentViewController:navController animated:YES completion:nil];
         }
     });
@@ -85,7 +116,9 @@
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:response options:0 error:nil];
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:jsonString];
+        CDVPluginResult *result =
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:jsonString];
+
         [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
 
     } @catch (NSException *exception) {
@@ -108,10 +141,13 @@
         }
 
         NSDictionary *response = @{@"status": @"CANCELLED"};
+
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:response options:0 error:nil];
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:jsonString];
+        CDVPluginResult *result =
+        [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:jsonString];
+
         [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
     });
 }
