@@ -5,9 +5,16 @@ import FACEKI_BLAZE_IOS
 class FacekiBlaze: CDVPlugin {
 
     private var callbackId: String?
+    private var isProcessing: Bool = false
 
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
+
+        // ✅ Prevent multiple calls
+        if isProcessing {
+            sendError("VERIFICATION_ALREADY_RUNNING")
+            return
+        }
 
         self.callbackId = command.callbackId
 
@@ -21,8 +28,14 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        // ⚠️ IMPORTANT: You must configure your workflowId
-        let workflowId = ""  // <-- SET THIS (or extend JS later)
+        // ✅ Get workflowId from arguments (instead of hardcoding)
+        var workflowId = ""
+        if command.arguments.count > 1,
+           let wf = command.arguments[1] as? String {
+            workflowId = wf
+        }
+
+        isProcessing = true
 
         DispatchQueue.main.async {
 
@@ -35,39 +48,75 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
+            // ✅ Navigation handling (important)
             if let nav = self.viewController.navigationController {
                 nav.pushViewController(sdkVC, animated: true)
             } else {
-                self.viewController.present(sdkVC, animated: true)
+                let navController = UINavigationController(rootViewController: sdkVC)
+                self.viewController.present(navController, animated: true)
             }
         }
     }
 
-    // ✅ SUCCESS / RESULT
+    // ✅ SUCCESS CALLBACK (Faceki onComplete)
     private func onComplete(data: [AnyHashable: Any]) {
 
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+            self.isProcessing = false
+
+            var response: [String: Any] = [:]
+            response["status"] = "SUCCESS"
+            response["data"] = data
+
+            let jsonData = try JSONSerialization.data(withJSONObject: response, options: [])
             let jsonString = String(data: jsonData, encoding: .utf8)
 
             let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: jsonString)
             self.commandDelegate.send(result, callbackId: self.callbackId)
 
         } catch {
-            sendError("Failed to parse response")
+            self.isProcessing = false
+            sendError("PROCESSING_ERROR")
         }
     }
 
-    // ✅ USER EXIT
+    // ✅ USER EXIT / BACK ACTION
     private func onRedirectBack() {
         DispatchQueue.main.async {
-            self.viewController.dismiss(animated: true)
+
+            self.isProcessing = false
+
+            if let nav = self.viewController.navigationController {
+                nav.popToViewController(self.viewController, animated: true)
+            } else {
+                self.viewController.dismiss(animated: true)
+            }
+
+            // ✅ Return cancel status to Cordova
+            let response = ["status": "CANCELLED"]
+            if let jsonData = try? JSONSerialization.data(withJSONObject: response),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+
+                let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: jsonString)
+                self.commandDelegate.send(result, callbackId: self.callbackId)
+            }
         }
     }
 
-    // ❌ ERROR
+    // ❌ ERROR HANDLER
     private func sendError(_ message: String) {
-        let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: message)
-        self.commandDelegate.send(result, callbackId: self.callbackId)
+        self.isProcessing = false
+
+        let response = ["status": "ERROR", "message": message]
+
+        if let jsonData = try? JSONSerialization.data(withJSONObject: response),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+
+            let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: jsonString)
+            self.commandDelegate.send(result, callbackId: self.callbackId)
+        } else {
+            let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: message)
+            self.commandDelegate.send(result, callbackId: self.callbackId)
+        }
     }
 }
