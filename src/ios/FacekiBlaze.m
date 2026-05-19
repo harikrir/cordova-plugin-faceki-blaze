@@ -3,7 +3,7 @@
 #import <UIKit/UIKit.h>
 #import <Cordova/CDV.h>
 
-// ✅ FIX: Correct way to import Swift Pod
+// ✅ Import Swift module (still required for linking)
 @import FACEKI_BLAZE_IOS;
 
 @interface FacekiBlaze ()
@@ -52,38 +52,46 @@
 
     dispatch_async(dispatch_get_main_queue(), ^{
 
-        // ✅ SAFER: declare type loosely to avoid header mismatch issues
         UIViewController *sdkVC = nil;
 
-        // ✅ Use performSelector to avoid compile-time selector issues
+        // ✅ ✅ DYNAMIC SWIFT CLASS LOADING (CRITICAL FIX)
+        Class loggerClass = NSClassFromString(@"Logger");
+
+        if (loggerClass) {
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 
-        SEL selector = NSSelectorFromString(@"initiateSMSDKWithVerificationLink:workflowId:setOnComplete:redirectBack:selfieImageUrl:cardGuideUrl:");
+            SEL selector = NSSelectorFromString(@"initiateSMSDKWithVerificationLink:workflowId:setOnComplete:redirectBack:selfieImageUrl:cardGuideUrl:");
 
-        if ([Logger respondsToSelector:selector]) {
+            if ([loggerClass respondsToSelector:selector]) {
 
-            sdkVC = ((UIViewController * (*)(id, SEL, NSString *, NSString *, id, id, id, id))
-                     [Logger methodForSelector:selector])(
-                Logger,
-                selector,
-                verificationLink,
-                workflowId,
-                ^(NSDictionary *data) {
-                    [self onComplete:data];
-                },
-                ^{
-                    [self onRedirectBack];
-                },
-                nil,
-                nil
-            );
-        }
+                IMP imp = [loggerClass methodForSelector:selector];
+
+                UIViewController *(*func)(id, SEL, NSString *, NSString *, id, id, id, id) = (void *)imp;
+
+                sdkVC = func(
+                    loggerClass,
+                    selector,
+                    verificationLink,
+                    workflowId,
+                    ^(NSDictionary *data) {
+                        [self onComplete:data];
+                    },
+                    ^{
+                        [self onRedirectBack];
+                    },
+                    nil,
+                    nil
+                );
+            }
 
 #pragma clang diagnostic pop
+        }
 
         // ✅ Safety fallback
         if (!sdkVC) {
+            NSLog(@"Faceki ERROR: SDK init failed");
             self.isProcessing = NO;
             [self sendError:@"SDK_INIT_FAILED"];
             return;
