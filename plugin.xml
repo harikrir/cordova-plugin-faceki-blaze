@@ -8,8 +8,6 @@
     <description>Faceki Blaze Cordova Plugin (iOS + Android)</description>
     <license>MIT</license>
 
-    <!-- ✅ Swift Version -->
-    <preference name="USESWIFTLANGUAGEVERSION" default="5.0" />
 
     <!-- ================= JS ================= -->
     <js-module src="www/FacekiBlaze.js" name="FacekiBlaze">
