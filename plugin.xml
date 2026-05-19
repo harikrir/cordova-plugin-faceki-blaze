@@ -23,9 +23,7 @@
             </feature>
         </config-file>
 
-        <!-- ✅ Required for Swift-based pod dependency -->
-        <preference name="UseSwiftLanguageVersion" value="5.0" />
-        <preference name="SwiftVersion" value="5.0" />
+        
 
         <!-- ✅ Use Objective-C implementation now -->
         <source-file src="src/ios/FacekiBlaze.m" />
