@@ -17,36 +17,33 @@
     </js-module>
 
     <!-- ================= iOS ================= -->
-    <platform name="ios">
+   <platform name="ios">
 
-        <!-- Register plugin -->
-        <config-file target="config.xml" parent="/*">
-            <feature name="FacekiBlaze">
-                <param name="ios-package" value="FacekiBlaze" />
-            </feature>
-        </config-file>
+    <config-file target="config.xml" parent="/*">
+        <feature name="FacekiBlaze">
+            <param name="ios-package" value="FacekiBlaze" />
+        </feature>
+    </config-file>
 
-        <!-- Swift config -->
-        <preference name="UseSwiftLanguageVersion" value="$USESWIFTLANGUAGEVERSION" />
+    <!-- ✅ Directly set Swift version -->
+    <preference name="UseSwiftLanguageVersion" value="5.0" />
 
-        <!-- Swift file -->
-        <source-file src="src/ios/FacekiBlaze.swift" />
+    <source-file src="src/ios/FacekiBlaze.swift" />
 
-        <!-- ✅ Faceki iOS SDK -->
-        <podspec>
-            <pods>
-                <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
-            </pods>
-        </podspec>
+    <podspec>
+        <pods>
+            <pod name="FACEKI-BLAZE-IOS" spec="~> 3.0.0" />
+        </pods>
+    </podspec>
 
-        <!-- ✅ Camera permission -->
-        <edit-config file="*-Info.plist"
-                     target="NSCameraUsageDescription"
-                     mode="merge">
-            <string>Camera is required for identity verification</string>
-        </edit-config>
+    <edit-config file="*-Info.plist"
+                 target="NSCameraUsageDescription"
+                 mode="merge">
+        <string>Camera is required for identity verification</string>
+    </edit-config>
 
-    </platform>
+</platform>
+
 
     <!-- ================= ANDROID ================= -->
     <platform name="android">
