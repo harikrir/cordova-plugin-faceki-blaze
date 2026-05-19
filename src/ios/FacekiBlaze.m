@@ -3,7 +3,6 @@
 #import <UIKit/UIKit.h>
 #import <Cordova/CDV.h>
 
-// ✅ Required to link Swift Pod
 @import FACEKI_BLAZE_IOS;
 
 @interface FacekiBlaze ()
@@ -17,7 +16,6 @@
 
 - (void)startVerification:(CDVInvokedUrlCommand *)command {
 
-    // ✅ Prevent multiple calls
     if (self.isProcessing) {
         [self sendError:@"VERIFICATION_ALREADY_RUNNING"];
         return;
@@ -25,27 +23,24 @@
 
     self.callbackId = command.callbackId;
 
-    // ✅ Validate arguments
-    if (command.arguments.count < 1) {
-        [self sendError:@"verificationLink is required"];
+    // ✅ Expecting arguments:
+    // [clientId, clientSecret, workflowId]
+
+    if (command.arguments.count < 3) {
+        [self sendError:@"clientId, clientSecret, workflowId required"];
         return;
     }
 
-    id verificationArg = command.arguments[0];
-    if (![verificationArg isKindOfClass:[NSString class]]) {
-        [self sendError:@"Invalid verificationLink"];
+    NSString *clientId = command.arguments[0];
+    NSString *clientSecret = command.arguments[1];
+    NSString *workflowId = command.arguments[2];
+
+    if (![clientId isKindOfClass:[NSString class]] ||
+        ![clientSecret isKindOfClass:[NSString class]] ||
+        ![workflowId isKindOfClass:[NSString class]]) {
+
+        [self sendError:@"Invalid parameters"];
         return;
-    }
-
-    NSString *verificationLink = (NSString *)verificationArg;
-
-    // ✅ Optional workflowId
-    NSString *workflowId = @"";
-    if (command.arguments.count > 1) {
-        id wfArg = command.arguments[1];
-        if ([wfArg isKindOfClass:[NSString class]]) {
-            workflowId = (NSString *)wfArg;
-        }
     }
 
     self.isProcessing = YES;
@@ -54,55 +49,62 @@
 
         UIViewController *sdkVC = nil;
 
-        // ✅ ✅ CRITICAL FIX: Correct runtime class name
-        Class loggerClass = NSClassFromString(@"FACEKI_BLAZE_IOS.Logger");
+        // ✅ Correct class lookup
+        Class loggerClass = NSClassFromString(@"Logger");
 
-        // ✅ Fallback (rare cases)
         if (!loggerClass) {
-            loggerClass = NSClassFromString(@"Logger");
+            NSLog(@"Faceki ERROR: Logger class NOT found");
+            self.isProcessing = NO;
+            [self sendError:@"SDK_CLASS_NOT_FOUND"];
+            return;
         }
-
-        if (loggerClass) {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 
-            SEL selector = NSSelectorFromString(@"initiateSMSDKWithVerificationLink:workflowId:setOnComplete:redirectBack:selfieImageUrl:cardGuideUrl:");
+        // ✅ ✅ CORRECT selector (based on SDK)
+        SEL selector = NSSelectorFromString(
+            @"initiateSMSDKWithSetClientID:setClientSecret:workflowId:setOnComplete:redirectBack:selfieImageUrl:cardGuideUrl:"
+        );
 
-            if ([loggerClass respondsToSelector:selector]) {
-
-                IMP imp = [loggerClass methodForSelector:selector];
-
-                UIViewController *(*func)(id, SEL, NSString *, NSString *, id, id, id, id) = (void *)imp;
-
-                sdkVC = func(
-                    loggerClass,
-                    selector,
-                    verificationLink,
-                    workflowId,
-                    ^(NSDictionary *data) {
-                        [self onComplete:data];
-                    },
-                    ^{
-                        [self onRedirectBack];
-                    },
-                    nil,
-                    nil
-                );
-            }
-
-#pragma clang diagnostic pop
+        if (![loggerClass respondsToSelector:selector]) {
+            NSLog(@"Faceki ERROR: Selector NOT found");
+            self.isProcessing = NO;
+            [self sendError:@"SDK_METHOD_NOT_FOUND"];
+            return;
         }
 
-        // ✅ Safety fallback
+        // ✅ Function pointer
+        IMP imp = [loggerClass methodForSelector:selector];
+
+        UIViewController *(*func)(id, SEL, NSString *, NSString *, NSString *, id, id, id, id) = (void *)imp;
+
+        sdkVC = func(
+            loggerClass,
+            selector,
+            clientId,
+            clientSecret,
+            workflowId,
+            ^(NSDictionary *data) {
+                [self onComplete:data];
+            },
+            ^{
+                [self onRedirectBack];
+            },
+            nil,
+            nil
+        );
+
+#pragma clang diagnostic pop
+
         if (!sdkVC) {
-            NSLog(@"Faceki ERROR: Logger class or method not found");
+            NSLog(@"Faceki ERROR: SDK returned nil VC");
             self.isProcessing = NO;
             [self sendError:@"SDK_INIT_FAILED"];
             return;
         }
 
-        // ✅ Navigation handling
+        // ✅ Navigation
         if (self.viewController.navigationController) {
             [self.viewController.navigationController pushViewController:sdkVC animated:YES];
         } else {
@@ -116,7 +118,6 @@
 
 #pragma mark - Callbacks
 
-// ✅ SUCCESS CALLBACK
 - (void)onComplete:(NSDictionary *)data {
 
     @try {
@@ -140,7 +141,6 @@
     }
 }
 
-// ✅ USER EXIT / BACK ACTION
 - (void)onRedirectBack {
 
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -192,4 +192,4 @@
 }
 
 @end
-
+``
