@@ -10,6 +10,7 @@ class FacekiBlaze: CDVPlugin {
 
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
+
         self.callbackId = command.callbackId
 
         guard command.arguments.count >= 2 else {
@@ -23,88 +24,86 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            
+        DispatchQueue.main.async {
+
             guard let cordovaVC = self.viewController else {
                 self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
-            // 1. Initialize Faceki SDK matching documentation signatures exactly
             let facekiVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
-                setOnComplete: { [weak self] (data: [AnyHashable: Any]) in // 👈 Match doc type exactly
-                    guard let self = self else { return }
-                    print("✅ FACEKI SDK SUCCESS:", data)
 
-                    // Safely extract the result object exactly like the doc snippet
-                    let resultData = data["result"] as? [AnyHashable: Any] ?? [:]
-                    
-                    // Convert to String-keyed dictionary for clean JS translation
-                    var serializedData: [String: Any] = [:]
-                    for (key, value) in resultData {
-                        if let stringKey = key as? String {
-                            serializedData[stringKey] = value
+                // ✅ IMPORTANT FIX (use Any)
+                setOnComplete: { [weak self] data in
+                    guard let self = self else { return }
+
+                    print("✅ FACEKI SUCCESS:", data)
+
+                    let dict = data as? [AnyHashable: Any]
+                    let resultData = dict?["result"] as? [AnyHashable: Any] ?? [:]
+
+                    var serialized: [String: Any] = [:]
+                    for (k, v) in resultData {
+                        if let key = k as? String {
+                            serialized[key] = v
                         }
                     }
 
                     self.sendSuccess([
                         "status": "SUCCESS",
-                        "data": serializedData
+                        "data": serialized
                     ])
 
-                    DispatchQueue.main.async {
-                        self.removeSdkFromHierarchy()
-                    }
+                    self.removeSdkFromHierarchy()
                 },
-                redirectBack: { [weak self] in // 👈 Match onRedirectBack signature
+
+                redirectBack: { [weak self] in
                     guard let self = self else { return }
-                    print("⚠️ FACEKI SDK CANCELLED")
+
+                    print("⚠️ FACEKI CANCELLED")
 
                     self.sendErrorObject([
                         "status": "CANCELLED"
                     ])
 
-                    DispatchQueue.main.async {
-                        self.removeSdkFromHierarchy()
-                    }
+                    self.removeSdkFromHierarchy()
                 },
+
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
             self.sdkVC = facekiVC
 
-            // 2. Child view integration loop to isolate MainViewController alert contexts
+            // ✅ EMBED SDK VIEW (correct approach)
             cordovaVC.addChild(facekiVC)
             facekiVC.view.frame = cordovaVC.view.bounds
             facekiVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            
-            cordovaVC.view.addSubview(facekiVC)
+
+            cordovaVC.view.addSubview(facekiVC.view)
             facekiVC.didMove(toParent: cordovaVC)
         }
     }
 
-    // MARK: - Safe Structural Removal Handler
-
+    // ✅ CLEAN REMOVE
     private func removeSdkFromHierarchy() {
-        guard let facekiVC = self.sdkVC else { return }
-        facekiVC.willMove(toParent: nil)
-        facekiVC.view.removeFromSuperview()
-        facekiVC.removeFromParent()
-        self.sdkVC = nil
+        guard let vc = sdkVC else { return }
+        vc.willMove(toParent: nil)
+        vc.view.removeFromSuperview()
+        vc.removeFromParent()
+        sdkVC = nil
     }
 
-    // MARK: - Cordova Native Bridge Communicators
-
+    // ✅ SUCCESS
     private func sendSuccess(_ data: [String: Any]) {
         guard let callbackId = callbackId else { return }
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: data)
         self.commandDelegate.send(result, callbackId: callbackId)
     }
 
+    // ✅ ERROR
     private func sendError(_ message: String) {
         sendErrorObject(["status": "ERROR", "message": message])
     }
