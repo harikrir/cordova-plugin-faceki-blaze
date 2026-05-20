@@ -58,8 +58,7 @@
         <uses-permission android:name="android.permission.INTERNET" />
     </config-file>
 
-    <!-- ✅ REQUIRED -->
-    <framework src="https://jitpack.io" type="gradleReference" />
+ 
 
     <!-- ✅ REQUIRED -->
     <framework src="com.github.faceki:blaze-android-sdk:2.1" type="gradleReference" />
