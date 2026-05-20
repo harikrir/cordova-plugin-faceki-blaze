@@ -14,22 +14,16 @@
     </js-module>
 
     <!-- ================= iOS ================= -->
+    <platform name="ios">
 
-<platform name="ios">
-
-        <!-- ✅ Register plugin -->
         <config-file target="config.xml" parent="/*">
             <feature name="FacekiBlaze">
                 <param name="ios-package" value="FacekiBlaze" />
             </feature>
         </config-file>
 
-      
-
-        <!-- ✅ Swift file ONLY -->
         <source-file src="src/ios/FacekiBlaze.swift" />
 
-        <!-- ✅ CocoaPods SDK -->
         <podspec>
             <config>
                 <source url="https://cdn.cocoapods.org/" />
@@ -39,7 +33,6 @@
             </pods>
         </podspec>
 
-        <!-- ✅ Permissions -->
         <edit-config file="*-Info.plist"
                      target="NSCameraUsageDescription"
                      mode="merge">
@@ -48,37 +41,28 @@
 
     </platform>
 
-
     <!-- ================= ANDROID ================= -->
- <!-- ✅ Android Platform -->
     <platform name="android">
 
-        <!-- ✅ Java class -->
         <source-file src="src/android/FacekiBlaze.java"
                      target-dir="app/src/main/java/com/yourplugin" />
 
-        <!-- ✅ Register plugin -->
         <config-file target="config.xml" parent="/*">
             <feature name="FacekiBlaze">
                 <param name="android-package" value="com.yourplugin.FacekiBlaze"/>
             </feature>
         </config-file>
 
-        <!-- ✅ Add permissions -->
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.CAMERA" />
             <uses-permission android:name="android.permission.INTERNET" />
         </config-file>
 
-        <!-- ✅ Add Maven repository (jitpack required for Faceki SDK) -->
-        <config-file target="app/build.gradle" parent="allprojects/repositories">
-            <repository>
-                <url>https://jitpack.io</url>
-            </repository>
-        </config-file>
+        <!-- ✅ JitPack repository -->
+        <framework src="https://jitpack.io" type="gradleReference" />
 
-        <!-- ✅ Add dependency -->
-        <framework src="com.github.faceki:blaze-android-sdk:2.1" />
+        <!-- ✅ Faceki SDK -->
+        <framework src="com.github.faceki:blaze-android-sdk:2.1" type="gradleReference" />
 
     </platform>
 
