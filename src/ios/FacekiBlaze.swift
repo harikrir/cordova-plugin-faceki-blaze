@@ -7,14 +7,11 @@ class FacekiBlaze: CDVPlugin {
 
     private var callbackId: String?
 
-    // MARK: - Entry Point
-
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
 
         self.callbackId = command.callbackId
 
-        // Validate parameters
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -27,18 +24,19 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        print("✅ verificationLink:", verificationLink)
-        print("✅ workflowId:", workflowId)
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
 
-            // Cordova main controller
             guard let cordovaVC = self.viewController else {
                 self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
-            // Initialize SDK
+            // Prevent duplicate presentation
+            if cordovaVC.presentedViewController != nil {
+                self.sendError("VIEW_ALREADY_PRESENTED")
+                return
+            }
+
             let sdkVC = Logger.initiateSMSDK(
 
                 verificationLink: verificationLink,
@@ -52,23 +50,15 @@ class FacekiBlaze: CDVPlugin {
                     (data as? [AnyHashable: Any])?["result"]
                     as? [AnyHashable: Any] ?? [:]
 
-                    let response: [String: Any] = [
+                    self.sendSuccess([
                         "status": "SUCCESS",
                         "data": resultData
-                    ]
+                    ])
 
-                    self.sendSuccess(response)
-
-                    // Return safely
                     DispatchQueue.main.async {
 
-                        if let nav = cordovaVC.navigationController {
-
-                            nav.popToRootViewController(animated: true)
-
-                        } else {
-
-                            cordovaVC.dismiss(animated: true)
+                        if sdkVC.presentingViewController != nil {
+                            sdkVC.dismiss(animated: true)
                         }
                     }
                 },
@@ -79,13 +69,8 @@ class FacekiBlaze: CDVPlugin {
 
                     DispatchQueue.main.async {
 
-                        if let nav = cordovaVC.navigationController {
-
-                            nav.popToRootViewController(animated: true)
-
-                        } else {
-
-                            cordovaVC.dismiss(animated: true)
+                        if sdkVC.presentingViewController != nil {
+                            sdkVC.dismiss(animated: true)
                         }
                     }
 
@@ -98,35 +83,19 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
+            // CRITICAL FIX
             sdkVC.modalPresentationStyle = .fullScreen
+            sdkVC.modalTransitionStyle = .crossDissolve
 
-            // Preferred method (official SDK flow)
-            if let nav = cordovaVC.navigationController {
-
-                print("✅ PUSH SDK VC")
-
-                nav.pushViewController(sdkVC, animated: true)
-
-            } else {
-
-                // Fallback only if navigation controller missing
-                print("⚠️ NAVIGATION CONTROLLER NOT FOUND → PRESENT")
-
-                let navController = UINavigationController(rootViewController: sdkVC)
-                navController.modalPresentationStyle = .fullScreen
-
-                cordovaVC.present(navController, animated: true)
-            }
+            cordovaVC.present(sdkVC, animated: true)
         }
     }
 
-    // MARK: - SUCCESS
+    // MARK: SUCCESS
 
     private func sendSuccess(_ data: [String: Any]) {
 
-        guard let callbackId = callbackId else {
-            return
-        }
+        guard let callbackId = callbackId else { return }
 
         do {
 
@@ -146,7 +115,7 @@ class FacekiBlaze: CDVPlugin {
         }
     }
 
-    // MARK: - ERROR
+    // MARK: ERROR
 
     private func sendError(_ message: String) {
 
@@ -158,9 +127,7 @@ class FacekiBlaze: CDVPlugin {
 
     private func sendErrorObject(_ obj: [String: Any]) {
 
-        guard let callbackId = callbackId else {
-            return
-        }
+        guard let callbackId = callbackId else { return }
 
         do {
 
