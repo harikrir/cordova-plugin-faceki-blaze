@@ -6,6 +6,7 @@ import FACEKI_BLAZE_IOS
 class FacekiBlaze: CDVPlugin {
 
     private var callbackId: String?
+    private var navController: UINavigationController?
 
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
@@ -23,15 +24,13 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.async {
 
-            // ✅ SAME AS JUMIO (CRITICAL FIX)
             guard let rootVC = UIApplication.shared.windows.first?.rootViewController else {
                 self.sendError("NO_ROOT_VIEW_CONTROLLER")
                 return
             }
 
-            // Prevent duplicate presentation
             if rootVC.presentedViewController != nil {
                 self.sendError("VIEW_ALREADY_PRESENTED")
                 return
@@ -54,14 +53,14 @@ class FacekiBlaze: CDVPlugin {
                         (data as? [AnyHashable: Any])?["result"]
                         as? [AnyHashable: Any] ?? [:]
 
+                    DispatchQueue.main.async {
+                        self.navController?.dismiss(animated: true)
+                    }
+
                     self.sendSuccess([
                         "status": "SUCCESS",
                         "data": resultData
                     ])
-
-                    DispatchQueue.main.async {
-                        sdkVC.dismiss(animated: true)
-                    }
                 },
 
                 // ✅ CANCEL
@@ -70,24 +69,27 @@ class FacekiBlaze: CDVPlugin {
 
                     print("⚠️ SDK BACK")
 
+                    DispatchQueue.main.async {
+                        self.navController?.dismiss(animated: true)
+                    }
+
                     self.sendErrorObject([
                         "status": "CANCELLED"
                     ])
-
-                    DispatchQueue.main.async {
-                        sdkVC.dismiss(animated: true)
-                    }
                 },
 
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            // ✅ IMPORTANT
-            sdkVC.modalPresentationStyle = .fullScreen
+            // ✅ CRITICAL: wrap inside navigation (this fixes everything)
+            let navController = UINavigationController(rootViewController: sdkVC)
+            navController.modalPresentationStyle = .fullScreen
 
-            // ✅ SAME PATTERN AS JUMIO
-            rootVC.present(sdkVC, animated: true)
+            // ✅ store reference (needed for dismiss)
+            self.navController = navController
+
+            rootVC.present(navController, animated: true)
         }
     }
 
