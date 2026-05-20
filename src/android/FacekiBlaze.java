@@ -5,7 +5,10 @@ import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import com.faceki.android.FaceKi; // ✅ ONLY THIS IMPORT
+// ✅ FINAL CORRECT IMPORTS
+import com.faceki.android.FaceKi;
+import com.faceki.android.KycResponseHandler;
+import com.faceki.android.VerificationResult;
 
 public class FacekiBlaze extends CordovaPlugin {
 
@@ -45,21 +48,22 @@ public class FacekiBlaze extends CordovaPlugin {
                 verificationLink,
                 recordIdentifier,
 
-                new FaceKi.KycResponseHandler() { // ✅ FIX HERE
+                new KycResponseHandler() {  // ✅ correct
                     @Override
-                    public void handleKycResponse(String json, FaceKi.VerificationResult result) { // ✅ FIX HERE
+                    public void handleKycResponse(String json, VerificationResult result) {
 
                         try {
+
                             JSONObject response = new JSONObject();
 
-                            if (result instanceof FaceKi.VerificationResult.ResultOk) {
+                            if (result instanceof VerificationResult.ResultOk) {
 
                                 response.put("status", "SUCCESS");
                                 response.put("data", json != null ? new JSONObject(json) : new JSONObject());
 
                                 callbackContext.success(response);
 
-                            } else if (result instanceof FaceKi.VerificationResult.ResultCanceled) {
+                            } else if (result instanceof VerificationResult.ResultCanceled) {
 
                                 response.put("status", "CANCELLED");
                                 callbackContext.error(response);
