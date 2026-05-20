@@ -5,9 +5,10 @@ import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import com.faceki.blaze.FaceKi;
-import com.faceki.blaze.handler.KycResponseHandler;
-import com.faceki.blaze.model.VerificationResult;
+// ✅ Correct SDK imports
+import com.faceki.android.FaceKi;
+import com.faceki.android.handler.KycResponseHandler;
+import com.faceki.android.model.VerificationResult;
 
 public class FacekiBlaze extends CordovaPlugin {
 
@@ -22,7 +23,7 @@ public class FacekiBlaze extends CordovaPlugin {
 
             try {
                 String verificationLink = args.getString(0);
-                String recordIdentifier = args.getString(1);
+                String recordIdentifier = args.getString(1); // ✅ workflowId mapped
 
                 startKyc(verificationLink, recordIdentifier);
 
@@ -52,24 +53,29 @@ public class FacekiBlaze extends CordovaPlugin {
                     public void handleKycResponse(String json, VerificationResult result) {
 
                         try {
+
                             JSONObject response = new JSONObject();
 
                             if (result instanceof VerificationResult.ResultOk) {
 
                                 response.put("status", "SUCCESS");
-                                response.put("data", json != null ? json : "");
+
+                                if (json != null) {
+                                    response.put("data", new JSONObject(json));
+                                } else {
+                                    response.put("data", new JSONObject());
+                                }
 
                                 callbackContext.success(response);
 
                             } else if (result instanceof VerificationResult.ResultCanceled) {
 
                                 response.put("status", "CANCELLED");
-
                                 callbackContext.error(response);
                             }
 
                         } catch (Exception e) {
-                            callbackContext.error("JSON_ERROR");
+                            callbackContext.error("JSON_PARSE_ERROR");
                         }
                     }
                 }
