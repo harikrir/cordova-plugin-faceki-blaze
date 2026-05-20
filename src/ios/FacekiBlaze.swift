@@ -8,11 +8,13 @@ class FacekiBlaze: CDVPlugin {
     private var callbackId: String?
     private var navController: UINavigationController?
 
+    // MARK: Entry Point
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
 
         self.callbackId = command.callbackId
 
+        // ✅ Validate params
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -26,12 +28,14 @@ class FacekiBlaze: CDVPlugin {
 
         DispatchQueue.main.async {
 
-            guard let rootVC = UIApplication.shared.windows.first?.rootViewController else {
-                self.sendError("NO_ROOT_VIEW_CONTROLLER")
+            // ✅ CRITICAL: always use top-most visible VC
+            guard let topVC = self.getTopViewController() else {
+                self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
-            if rootVC.presentedViewController != nil {
+            // Prevent multiple presentations
+            if topVC.presentedViewController != nil {
                 self.sendError("VIEW_ALREADY_PRESENTED")
                 return
             }
@@ -43,7 +47,7 @@ class FacekiBlaze: CDVPlugin {
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
-                // ✅ SUCCESS
+                // ✅ SUCCESS CALLBACK
                 setOnComplete: { [weak self] data in
                     guard let self = self else { return }
 
@@ -63,7 +67,7 @@ class FacekiBlaze: CDVPlugin {
                     ])
                 },
 
-                // ✅ CANCEL
+                // ✅ CANCEL / BACK
                 redirectBack: { [weak self] in
                     guard let self = self else { return }
 
@@ -82,15 +86,33 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
-            // ✅ CRITICAL: wrap inside navigation (this fixes everything)
+            // ✅ IMPORTANT: Wrap SDK inside navigation controller
             let navController = UINavigationController(rootViewController: sdkVC)
             navController.modalPresentationStyle = .fullScreen
 
-            // ✅ store reference (needed for dismiss)
+            // ✅ Store reference for dismiss
             self.navController = navController
 
-            rootVC.present(navController, animated: true)
+            // ✅ CRITICAL FIX: Present from TOP VC (not rootVC, not self.viewController)
+            topVC.present(navController, animated: true)
         }
+    }
+
+    // ✅ Get top-most visible view controller (FIXES alert error)
+    private func getTopViewController() -> UIViewController? {
+
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first(where: { $0.isKeyWindow }) else {
+            return nil
+        }
+
+        var topVC = window.rootViewController
+
+        while let presented = topVC?.presentedViewController {
+            topVC = presented
+        }
+
+        return topVC
     }
 
     // MARK: SUCCESS
