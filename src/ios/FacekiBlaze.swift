@@ -1,6 +1,5 @@
 import Foundation
 import UIKit
-import Cordova
 import FACEKI_BLAZE_IOS
 
 @objc(FacekiBlaze)
@@ -8,6 +7,7 @@ class FacekiBlaze: CDVPlugin {
 
     var callbackId: String?
 
+    // MARK: - Entry Point
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
 
@@ -33,23 +33,22 @@ class FacekiBlaze: CDVPlugin {
                 setClientID: clientId,
                 setClientSecret: clientSecret,
                 workflowId: workflowId,
-                setOnComplete: { data in
 
+                setOnComplete: { data in
                     let response: [String: Any] = [
                         "status": "SUCCESS",
-                        "data": data
+                        "data": data ?? [:]
                     ]
-
                     self.sendSuccess(response)
                 },
-                redirectBack: {
 
+                redirectBack: {
                     let response: [String: Any] = [
                         "status": "CANCELLED"
                     ]
-
                     self.sendErrorObject(response)
                 },
+
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
@@ -68,39 +67,45 @@ class FacekiBlaze: CDVPlugin {
         }
     }
 
-    // ✅ SUCCESS
+    // MARK: - SUCCESS
     private func sendSuccess(_ data: [String: Any]) {
-        guard let callbackId = self.callbackId else { return }
+        guard let callbackId = callbackId else { return }
 
-        if let jsonData = try? JSONSerialization.data(withJSONObject: data),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+            let jsonString = String(data: jsonData, encoding: .utf8)
 
             let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: jsonString)
             self.commandDelegate.send(result, callbackId: callbackId)
+
+        } catch {
+            sendError("JSON_SERIALIZATION_FAILED")
         }
     }
 
-    // ✅ ERROR (string)
+    // MARK: - ERROR (String)
     private func sendError(_ message: String) {
-        guard let callbackId = self.callbackId else { return }
-
-        let response = [
+        let response: [String: Any] = [
             "status": "ERROR",
             "message": message
         ]
-
         sendErrorObject(response)
     }
 
-    // ✅ ERROR (object)
+    // MARK: - ERROR (Object)
     private func sendErrorObject(_ obj: [String: Any]) {
-        guard let callbackId = self.callbackId else { return }
+        guard let callbackId = callbackId else { return }
 
-        if let jsonData = try? JSONSerialization.data(withJSONObject: obj),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: obj, options: [])
+            let jsonString = String(data: jsonData, encoding: .utf8)
 
             let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: jsonString)
             self.commandDelegate.send(result, callbackId: callbackId)
+
+        } catch {
+            let fallback = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "UNKNOWN_ERROR")
+            self.commandDelegate.send(fallback, callbackId: callbackId)
         }
     }
 }
