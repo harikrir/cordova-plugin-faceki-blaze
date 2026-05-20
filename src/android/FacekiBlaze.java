@@ -5,10 +5,7 @@ import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-// ✅ Correct SDK imports
-import com.faceki.android.FaceKi;
-import com.faceki.android.handler.KycResponseHandler;
-import com.faceki.android.model.VerificationResult;
+import com.faceki.android.FaceKi; // ✅ ONLY THIS IMPORT
 
 public class FacekiBlaze extends CordovaPlugin {
 
@@ -23,7 +20,7 @@ public class FacekiBlaze extends CordovaPlugin {
 
             try {
                 String verificationLink = args.getString(0);
-                String recordIdentifier = args.getString(1); // ✅ workflowId mapped
+                String recordIdentifier = args.getString(1);
 
                 startKyc(verificationLink, recordIdentifier);
 
@@ -48,27 +45,21 @@ public class FacekiBlaze extends CordovaPlugin {
                 verificationLink,
                 recordIdentifier,
 
-                new KycResponseHandler() {
+                new FaceKi.KycResponseHandler() { // ✅ FIX HERE
                     @Override
-                    public void handleKycResponse(String json, VerificationResult result) {
+                    public void handleKycResponse(String json, FaceKi.VerificationResult result) { // ✅ FIX HERE
 
                         try {
-
                             JSONObject response = new JSONObject();
 
-                            if (result instanceof VerificationResult.ResultOk) {
+                            if (result instanceof FaceKi.VerificationResult.ResultOk) {
 
                                 response.put("status", "SUCCESS");
-
-                                if (json != null) {
-                                    response.put("data", new JSONObject(json));
-                                } else {
-                                    response.put("data", new JSONObject());
-                                }
+                                response.put("data", json != null ? new JSONObject(json) : new JSONObject());
 
                                 callbackContext.success(response);
 
-                            } else if (result instanceof VerificationResult.ResultCanceled) {
+                            } else if (result instanceof FaceKi.VerificationResult.ResultCanceled) {
 
                                 response.put("status", "CANCELLED");
                                 callbackContext.error(response);
