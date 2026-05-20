@@ -30,8 +30,8 @@ class FacekiBlaze: CDVPlugin {
 
         DispatchQueue.main.async {
 
-            guard let rootVC = self.viewController else {
-                self.sendError("VIEW_CONTROLLER_MISSING")
+            guard let topVC = self.getTopViewController() else {
+                self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
@@ -59,10 +59,12 @@ class FacekiBlaze: CDVPlugin {
                     print("⚠️ SDK BACK / CANCEL")
 
                     DispatchQueue.main.async {
-                        if let nav = rootVC.navigationController {
-                            nav.popToRootViewController(animated: true)
-                        } else {
-                            rootVC.dismiss(animated: true)
+                        if let topVC = self.getTopViewController() {
+                            if let nav = topVC.navigationController {
+                                nav.popToRootViewController(animated: true)
+                            } else {
+                                topVC.dismiss(animated: true)
+                            }
                         }
                     }
 
@@ -77,23 +79,42 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
-            // ✅ SAFE NAVIGATION HANDLING
+            // ✅ SAFE NAVIGATION (TOP VC BASED)
 
-            if let nav = rootVC.navigationController {
-                // ✅ Case 1: Already inside navigation → PUSH
-                print("✅ Using existing navigationController")
+            if let nav = topVC as? UINavigationController {
+                print("✅ Top is navigation controller → push")
+                nav.pushViewController(sdkVC, animated: true)
+
+            } else if let nav = topVC.navigationController {
+                print("✅ Using existing navigationController → push")
                 nav.pushViewController(sdkVC, animated: true)
 
             } else {
-                // ✅ Case 2: No navigation → PRESENT safely
-                print("⚠️ No navigationController → presenting")
+                print("⚠️ No navigation → present safely")
 
                 let navController = UINavigationController(rootViewController: sdkVC)
                 navController.modalPresentationStyle = .fullScreen
 
-                rootVC.present(navController, animated: true)
+                topVC.present(navController, animated: true)
             }
         }
+    }
+
+    // ✅ CRITICAL: Get TOP visible controller (fixes your error)
+    private func getTopViewController() -> UIViewController? {
+
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first else {
+            return nil
+        }
+
+        var topVC = window.rootViewController
+
+        while let presented = topVC?.presentedViewController {
+            topVC = presented
+        }
+
+        return topVC
     }
 
     // MARK: - SUCCESS
