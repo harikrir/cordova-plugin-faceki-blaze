@@ -7,11 +7,13 @@ class FacekiBlaze: CDVPlugin {
 
     var callbackId: String?
 
+    // MARK: - Entry Point
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
 
         self.callbackId = command.callbackId
 
+        // ✅ Validate params
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -33,12 +35,12 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
-            // ✅ SDK VC
+            // ✅ Create SDK VC
             let sdkVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
-                // ✅ SUCCESS
+                // ✅ SUCCESS CALLBACK
                 setOnComplete: { data in
                     print("✅ SDK SUCCESS:", data)
 
@@ -52,12 +54,16 @@ class FacekiBlaze: CDVPlugin {
                     self.sendSuccess(response)
                 },
 
-                // ✅ BACK / CANCEL
+                // ✅ CANCEL / BACK CALLBACK
                 redirectBack: {
-                    print("⚠️ User navigated back")
-                    
+                    print("⚠️ SDK BACK / CANCEL")
+
                     DispatchQueue.main.async {
-                        rootVC.navigationController?.popToRootViewController(animated: true)
+                        if let nav = rootVC.navigationController {
+                            nav.popToRootViewController(animated: true)
+                        } else {
+                            rootVC.dismiss(animated: true)
+                        }
                     }
 
                     let response: [String: Any] = [
@@ -71,23 +77,21 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
-            // ✅ IMPORTANT: PUSH (not present)
+            // ✅ SAFE NAVIGATION HANDLING
+
             if let nav = rootVC.navigationController {
+                // ✅ Case 1: Already inside navigation → PUSH
                 print("✅ Using existing navigationController")
                 nav.pushViewController(sdkVC, animated: true)
 
             } else {
-                print("⚠️ No navigationController, creating one")
+                // ✅ Case 2: No navigation → PRESENT safely
+                print("⚠️ No navigationController → presenting")
 
-                let navController = UINavigationController(rootViewController: rootVC)
+                let navController = UINavigationController(rootViewController: sdkVC)
+                navController.modalPresentationStyle = .fullScreen
 
-                // Replace app root (to enable push behavior)
-                if let window = UIApplication.shared.windows.first {
-                    window.rootViewController = navController
-                    window.makeKeyAndVisible()
-                }
-
-                navController.pushViewController(sdkVC, animated: true)
+                rootVC.present(navController, animated: true)
             }
         }
     }
