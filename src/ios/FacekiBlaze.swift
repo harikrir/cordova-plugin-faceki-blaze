@@ -6,15 +6,12 @@ import FACEKI_BLAZE_IOS
 class FacekiBlaze: CDVPlugin {
 
     var callbackId: String?
-    var presentedNavController: UINavigationController? // ✅ store reference
 
-    // MARK: - Entry Point
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
 
         self.callbackId = command.callbackId
 
-        // ✅ Validate params
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -31,81 +28,66 @@ class FacekiBlaze: CDVPlugin {
 
         DispatchQueue.main.async {
 
+            guard let rootVC = self.viewController else {
+                self.sendError("VIEW_CONTROLLER_MISSING")
+                return
+            }
+
+            // ✅ SDK VC
             let sdkVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
-                // ✅ SUCCESS CALLBACK
+                // ✅ SUCCESS
                 setOnComplete: { data in
                     print("✅ SDK SUCCESS:", data)
 
-                    self.dismissSDK {
+                    let resultData = (data as? [AnyHashable: Any])?["result"] as? [AnyHashable: Any] ?? [:]
 
-                        let resultData = data as? [AnyHashable: Any] ?? [:]
+                    let response: [String: Any] = [
+                        "status": "SUCCESS",
+                        "data": resultData
+                    ]
 
-                        let response: [String: Any] = [
-                            "status": "SUCCESS",
-                            "data": resultData
-                        ]
-
-                        self.sendSuccess(response)
-                    }
+                    self.sendSuccess(response)
                 },
 
-                // ✅ CANCEL CALLBACK
+                // ✅ BACK / CANCEL
                 redirectBack: {
-                    print("⚠️ SDK CANCELLED")
-
-                    self.dismissSDK {
-
-                        let response: [String: Any] = [
-                            "status": "CANCELLED"
-                        ]
-
-                        self.sendErrorObject(response)
+                    print("⚠️ User navigated back")
+                    
+                    DispatchQueue.main.async {
+                        rootVC.navigationController?.popToRootViewController(animated: true)
                     }
+
+                    let response: [String: Any] = [
+                        "status": "CANCELLED"
+                    ]
+
+                    self.sendErrorObject(response)
                 },
 
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            guard let rootVC = self.viewController else {
-                self.sendError("VIEW_CONTROLLER_MISSING")
-                return
-            }
-
-            // ✅ Wrap SDK in navigation controller
-            let navController = UINavigationController(rootViewController: sdkVC)
-
-            // ✅ CRITICAL FIX: override SDK presentation behavior
-            navController.modalPresentationStyle = .overFullScreen
-
-            // ✅ Store reference for proper dismissal
-            self.presentedNavController = navController
-
-            // ✅ Present SDK
-            rootVC.present(navController, animated: true)
-        }
-    }
-
-    // ✅ PROPER DISMISS (FIXES YOUR ISSUE)
-    private func dismissSDK(completion: @escaping () -> Void) {
-
-        DispatchQueue.main.async {
-
-            if let nav = self.presentedNavController {
-                print("✅ Dismissing SDK navController")
-
-                nav.dismiss(animated: true) {
-                    self.presentedNavController = nil
-                    completion()
-                }
+            // ✅ IMPORTANT: PUSH (not present)
+            if let nav = rootVC.navigationController {
+                print("✅ Using existing navigationController")
+                nav.pushViewController(sdkVC, animated: true)
 
             } else {
-                print("⚠️ No stored controller, fallback dismiss")
+                print("⚠️ No navigationController, creating one")
 
-                self.viewController?.dismiss(animated: true, completion: completion)
+                let navController = UINavigationController(rootViewController: rootVC)
+
+                // Replace app root (to enable push behavior)
+                if let window = UIApplication.shared.windows.first {
+                    window.rootViewController = navController
+                    window.makeKeyAndVisible()
+                }
+
+                navController.pushViewController(sdkVC, animated: true)
             }
         }
     }
@@ -115,7 +97,7 @@ class FacekiBlaze: CDVPlugin {
         guard let callbackId = callbackId else { return }
 
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+            let jsonData = try JSONSerialization.data(withJSONObject: data)
             let jsonString = String(data: jsonData, encoding: .utf8)
 
             let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: jsonString)
@@ -128,18 +110,17 @@ class FacekiBlaze: CDVPlugin {
 
     // MARK: - ERROR
     private func sendError(_ message: String) {
-        let obj: [String: Any] = [
+        sendErrorObject([
             "status": "ERROR",
             "message": message
-        ]
-        sendErrorObject(obj)
+        ])
     }
 
     private func sendErrorObject(_ obj: [String: Any]) {
         guard let callbackId = callbackId else { return }
 
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: obj, options: [])
+            let jsonData = try JSONSerialization.data(withJSONObject: obj)
             let jsonString = String(data: jsonData, encoding: .utf8)
 
             let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: jsonString)
