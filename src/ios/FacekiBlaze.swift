@@ -6,6 +6,7 @@ import FACEKI_BLAZE_IOS
 class FacekiBlaze: CDVPlugin {
 
     var callbackId: String?
+    var presentedNavController: UINavigationController? // ✅ store reference
 
     // MARK: - Entry Point
     @objc(startVerification:)
@@ -13,7 +14,7 @@ class FacekiBlaze: CDVPlugin {
 
         self.callbackId = command.callbackId
 
-        // ✅ Expect verificationLink + workflowId
+        // ✅ Validate params
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -21,12 +22,10 @@ class FacekiBlaze: CDVPlugin {
 
         guard let verificationLink = command.arguments[0] as? String,
               let workflowId = command.arguments[1] as? String else {
-
             sendError("Invalid parameters")
             return
         }
 
-        // ✅ Debug logs
         print("✅ verificationLink:", verificationLink)
         print("✅ workflowId:", workflowId)
 
@@ -40,18 +39,16 @@ class FacekiBlaze: CDVPlugin {
                 setOnComplete: { data in
                     print("✅ SDK SUCCESS:", data)
 
-                    DispatchQueue.main.async {
-                        self.dismissSDK {
+                    self.dismissSDK {
 
-                            let resultData = data as? [AnyHashable: Any] ?? [:]
+                        let resultData = data as? [AnyHashable: Any] ?? [:]
 
-                            let response: [String: Any] = [
-                                "status": "SUCCESS",
-                                "data": resultData
-                            ]
+                        let response: [String: Any] = [
+                            "status": "SUCCESS",
+                            "data": resultData
+                        ]
 
-                            self.sendSuccess(response)
-                        }
+                        self.sendSuccess(response)
                     }
                 },
 
@@ -59,15 +56,13 @@ class FacekiBlaze: CDVPlugin {
                 redirectBack: {
                     print("⚠️ SDK CANCELLED")
 
-                    DispatchQueue.main.async {
-                        self.dismissSDK {
+                    self.dismissSDK {
 
-                            let response: [String: Any] = [
-                                "status": "CANCELLED"
-                            ]
+                        let response: [String: Any] = [
+                            "status": "CANCELLED"
+                        ]
 
-                            self.sendErrorObject(response)
-                        }
+                        self.sendErrorObject(response)
                     }
                 },
 
@@ -80,20 +75,38 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
-            // ✅ Always present modally
+            // ✅ Wrap SDK in navigation controller
             let navController = UINavigationController(rootViewController: sdkVC)
-            navController.modalPresentationStyle = .fullScreen
 
+            // ✅ CRITICAL FIX: override SDK presentation behavior
+            navController.modalPresentationStyle = .overFullScreen
+
+            // ✅ Store reference for proper dismissal
+            self.presentedNavController = navController
+
+            // ✅ Present SDK
             rootVC.present(navController, animated: true)
         }
     }
 
-    // ✅ Reusable dismiss function (important)
+    // ✅ PROPER DISMISS (FIXES YOUR ISSUE)
     private func dismissSDK(completion: @escaping () -> Void) {
-        if let presented = self.viewController?.presentedViewController {
-            presented.dismiss(animated: true, completion: completion)
-        } else {
-            completion()
+
+        DispatchQueue.main.async {
+
+            if let nav = self.presentedNavController {
+                print("✅ Dismissing SDK navController")
+
+                nav.dismiss(animated: true) {
+                    self.presentedNavController = nil
+                    completion()
+                }
+
+            } else {
+                print("⚠️ No stored controller, fallback dismiss")
+
+                self.viewController?.dismiss(animated: true, completion: completion)
+            }
         }
     }
 
@@ -113,16 +126,15 @@ class FacekiBlaze: CDVPlugin {
         }
     }
 
-    // MARK: - ERROR (String)
+    // MARK: - ERROR
     private func sendError(_ message: String) {
-        let response: [String: Any] = [
+        let obj: [String: Any] = [
             "status": "ERROR",
             "message": message
         ]
-        sendErrorObject(response)
+        sendErrorObject(obj)
     }
 
-    // MARK: - ERROR (Object)
     private func sendErrorObject(_ obj: [String: Any]) {
         guard let callbackId = callbackId else { return }
 
