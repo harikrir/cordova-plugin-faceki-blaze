@@ -1,137 +1,79 @@
-package com.faceki.blaze;
+package com.yourplugin;
 
 import android.app.Activity;
-import android.util.Log;
-
-import com.faceki.android.FaceKi;
-import com.faceki.android.interfaces.KycResponseHandler;
-import com.faceki.android.models.VerificationResult;
-
 import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.HashMap;
+import com.faceki.blaze.FaceKi;
+import com.faceki.blaze.handler.KycResponseHandler;
+import com.faceki.blaze.model.VerificationResult;
 
 public class FacekiBlaze extends CordovaPlugin {
 
-    private static final String TAG = "FacekiBlaze";
-
     private CallbackContext callbackContext;
-    private boolean isProcessing = false;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
 
-        if (!"startVerification".equals(action)) {
-            return false;
-        }
+        if ("startVerification".equals(action)) {
 
-        if (isProcessing) {
-            callbackContext.error("VERIFICATION_ALREADY_RUNNING");
-            return true;
-        }
+            this.callbackContext = callbackContext;
 
-        this.callbackContext = callbackContext;
+            try {
+                String verificationLink = args.getString(0);
+                String recordIdentifier = args.getString(1);
 
-        try {
-            String verificationLink = args.getString(0);
-            String recordIdentifier = args.optString(1, "default");
+                startKyc(verificationLink, recordIdentifier);
 
-            // ✅ Optional branding params
-            JSONObject options = args.optJSONObject(2);
-
-            String bgColor = null;
-            if (options != null) {
-                bgColor = options.optString("backgroundColor", null);
+            } catch (Exception e) {
+                callbackContext.error("Invalid parameters");
             }
 
-            startKyc(verificationLink, recordIdentifier, bgColor);
-
             return true;
-
-        } catch (Exception e) {
-            callbackContext.error("INVALID_ARGUMENTS: " + e.getMessage());
-            return false;
         }
+
+        return false;
     }
 
-    private void startKyc(String verificationLink, String recordIdentifier, String bgColor) {
+    private void startKyc(String verificationLink, String recordIdentifier) {
 
         Activity activity = cordova.getActivity();
-        isProcessing = true;
 
         activity.runOnUiThread(() -> {
-            try {
-                Log.d(TAG, "Starting Faceki verification");
 
-                // ✅ Optional Custom Colors
-                if (bgColor != null && !bgColor.isEmpty()) {
-                    HashMap<FaceKi.ColorElement, FaceKi.ColorValue> colorMap = new HashMap<>();
-                    colorMap.put(
-                            FaceKi.ColorElement.BackgroundColor,
-                            new FaceKi.ColorValue.StringColor(bgColor)
-                    );
-                    FaceKi.setCustomColors(colorMap);
+            FaceKi.startKycVerification(
+                activity,
+                verificationLink,
+                recordIdentifier,
+
+                new KycResponseHandler() {
+                    @Override
+                    public void handleKycResponse(String json, VerificationResult result) {
+
+                        try {
+                            JSONObject response = new JSONObject();
+
+                            if (result instanceof VerificationResult.ResultOk) {
+
+                                response.put("status", "SUCCESS");
+                                response.put("data", json != null ? json : "");
+
+                                callbackContext.success(response);
+
+                            } else if (result instanceof VerificationResult.ResultCanceled) {
+
+                                response.put("status", "CANCELLED");
+
+                                callbackContext.error(response);
+                            }
+
+                        } catch (Exception e) {
+                            callbackContext.error("JSON_ERROR");
+                        }
+                    }
                 }
-
-                // ✅ Start SDK
-                FaceKi.startKycVerification(
-                        activity,
-                        verificationLink,
-                        recordIdentifier,
-                        kycHandler
-                );
-
-            } catch (Exception e) {
-                isProcessing = false;
-                callbackContext.error("SDK_START_FAILED: " + e.getMessage());
-            }
+            );
         });
     }
-
-    // ✅ KYC CALLBACK HANDLER
-    private final KycResponseHandler kycHandler = new KycResponseHandler() {
-
-        @Override
-        public void handleKycResponse(String json, VerificationResult result) {
-
-            try {
-                Log.d(TAG, "KYC response received");
-
-                isProcessing = false;
-
-                JSONObject response = new JSONObject();
-
-                if (result instanceof VerificationResult.ResultOk) {
-
-                    response.put("status", "SUCCESS");
-
-                    if (json != null && !json.isEmpty()) {
-                        response.put("data", new JSONObject(json));
-                    } else {
-                        response.put("data", new JSONObject());
-                    }
-
-                    callbackContext.success(response);
-
-                }
-                else if (result instanceof VerificationResult.ResultCanceled) {
-
-                    response.put("status", "CANCELLED");
-                    callbackContext.error(response.toString());
-
-                }
-                else {
-
-                    response.put("status", "UNKNOWN");
-                    callbackContext.error(response.toString());
-                }
-
-            } catch (Exception e) {
-                isProcessing = false;
-                callbackContext.error("PROCESSING_ERROR: " + e.getMessage());
-            }
-        }
-    };
 }
