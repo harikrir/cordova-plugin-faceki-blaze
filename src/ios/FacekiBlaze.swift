@@ -13,7 +13,7 @@ class FacekiBlaze: CDVPlugin {
 
         self.callbackId = command.callbackId
 
-        // ✅ Expecting: verificationLink + workflowId
+        // ✅ Expect verificationLink + workflowId
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -26,7 +26,7 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        // ✅ Debug logs (VERY IMPORTANT)
+        // ✅ Debug logs
         print("✅ verificationLink:", verificationLink)
         print("✅ workflowId:", workflowId)
 
@@ -36,27 +36,39 @@ class FacekiBlaze: CDVPlugin {
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
+                // ✅ SUCCESS CALLBACK
                 setOnComplete: { data in
                     print("✅ SDK SUCCESS:", data)
 
-                    let resultData = data as? [AnyHashable: Any] ?? [:]
+                    DispatchQueue.main.async {
+                        self.dismissSDK {
 
-                    let response: [String: Any] = [
-                        "status": "SUCCESS",
-                        "data": resultData
-                    ]
+                            let resultData = data as? [AnyHashable: Any] ?? [:]
 
-                    self.sendSuccess(response)
+                            let response: [String: Any] = [
+                                "status": "SUCCESS",
+                                "data": resultData
+                            ]
+
+                            self.sendSuccess(response)
+                        }
+                    }
                 },
 
+                // ✅ CANCEL CALLBACK
                 redirectBack: {
                     print("⚠️ SDK CANCELLED")
 
-                    let response: [String: Any] = [
-                        "status": "CANCELLED"
-                    ]
+                    DispatchQueue.main.async {
+                        self.dismissSDK {
 
-                    self.sendErrorObject(response)
+                            let response: [String: Any] = [
+                                "status": "CANCELLED"
+                            ]
+
+                            self.sendErrorObject(response)
+                        }
+                    }
                 },
 
                 selfieImageUrl: nil,
@@ -68,11 +80,20 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
-            // ✅ ALWAYS USE PRESENT (SDK-safe)
+            // ✅ Always present modally
             let navController = UINavigationController(rootViewController: sdkVC)
             navController.modalPresentationStyle = .fullScreen
 
             rootVC.present(navController, animated: true)
+        }
+    }
+
+    // ✅ Reusable dismiss function (important)
+    private func dismissSDK(completion: @escaping () -> Void) {
+        if let presented = self.viewController?.presentedViewController {
+            presented.dismiss(animated: true, completion: completion)
+        } else {
+            completion()
         }
     }
 
