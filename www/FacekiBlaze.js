@@ -2,13 +2,18 @@ var exec = require('cordova/exec');
 
 var FacekiBlaze = {
 
-  startVerification: function (clientId, clientSecret, workflowId, options) {
+  startVerification: function (verificationLink, workflowId, options) {
     return new Promise(function (resolve, reject) {
 
-      if (!clientId || !clientSecret || !workflowId) {
-        reject("clientId, clientSecret, and workflowId are required");
+      // ✅ Updated validation
+      if (!verificationLink || !workflowId) {
+        reject("verificationLink and workflowId are required");
         return;
       }
+
+      console.log("Calling SDK with:");
+      console.log("verificationLink:", verificationLink);
+      console.log("workflowId:", workflowId);
 
       exec(
         function (result) {
@@ -32,10 +37,9 @@ var FacekiBlaze = {
         'FacekiBlaze',
         'startVerification',
         [
-          clientId,
-          clientSecret,
+          verificationLink,
           workflowId,
-          options || {}
+          options || {} // optional, ignored by native currently
         ]
       );
     });
