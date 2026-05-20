@@ -1,6 +1,11 @@
-// ✅ ONLY add repository here
 allprojects {
     repositories {
         maven { url "https://jitpack.io" }
+    }
+}
+
+android {
+    packagingOptions {
+        doNotStrip "**/*.so"
     }
 }
