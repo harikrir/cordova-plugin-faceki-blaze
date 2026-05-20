@@ -31,24 +31,28 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
-            // Prevent duplicate presentation
             if cordovaVC.presentedViewController != nil {
                 self.sendError("VIEW_ALREADY_PRESENTED")
                 return
             }
 
-            let sdkVC = Logger.initiateSMSDK(
+            // ✅ FIX: declare first
+            var sdkVC: UIViewController!
+
+            sdkVC = Logger.initiateSMSDK(
 
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
-                setOnComplete: { data in
+                setOnComplete: { [weak self] data in
+
+                    guard let self = self else { return }
 
                     print("✅ SDK SUCCESS:", data)
 
                     let resultData =
-                    (data as? [AnyHashable: Any])?["result"]
-                    as? [AnyHashable: Any] ?? [:]
+                        (data as? [AnyHashable: Any])?["result"]
+                        as? [AnyHashable: Any] ?? [:]
 
                     self.sendSuccess([
                         "status": "SUCCESS",
@@ -56,34 +60,30 @@ class FacekiBlaze: CDVPlugin {
                     ])
 
                     DispatchQueue.main.async {
-
-                        if sdkVC.presentingViewController != nil {
-                            sdkVC.dismiss(animated: true)
-                        }
+                        sdkVC.dismiss(animated: true)
                     }
                 },
 
-                redirectBack: {
+                redirectBack: { [weak self] in
+
+                    guard let self = self else { return }
 
                     print("⚠️ SDK BACK")
-
-                    DispatchQueue.main.async {
-
-                        if sdkVC.presentingViewController != nil {
-                            sdkVC.dismiss(animated: true)
-                        }
-                    }
 
                     self.sendErrorObject([
                         "status": "CANCELLED"
                     ])
+
+                    DispatchQueue.main.async {
+                        sdkVC.dismiss(animated: true)
+                    }
                 },
 
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            // CRITICAL FIX
+            // ✅ Force proper presentation
             sdkVC.modalPresentationStyle = .fullScreen
             sdkVC.modalTransitionStyle = .crossDissolve
 
@@ -92,13 +92,11 @@ class FacekiBlaze: CDVPlugin {
     }
 
     // MARK: SUCCESS
-
     private func sendSuccess(_ data: [String: Any]) {
 
         guard let callbackId = callbackId else { return }
 
         do {
-
             let jsonData = try JSONSerialization.data(withJSONObject: data)
             let jsonString = String(data: jsonData, encoding: .utf8)
 
@@ -110,15 +108,12 @@ class FacekiBlaze: CDVPlugin {
             self.commandDelegate.send(result, callbackId: callbackId)
 
         } catch {
-
             sendError("JSON_SERIALIZATION_FAILED")
         }
     }
 
     // MARK: ERROR
-
     private func sendError(_ message: String) {
-
         sendErrorObject([
             "status": "ERROR",
             "message": message
@@ -130,7 +125,6 @@ class FacekiBlaze: CDVPlugin {
         guard let callbackId = callbackId else { return }
 
         do {
-
             let jsonData = try JSONSerialization.data(withJSONObject: obj)
             let jsonString = String(data: jsonData, encoding: .utf8)
 
@@ -142,7 +136,6 @@ class FacekiBlaze: CDVPlugin {
             self.commandDelegate.send(result, callbackId: callbackId)
 
         } catch {
-
             let fallback = CDVPluginResult(
                 status: CDVCommandStatus_ERROR,
                 messageAs: "UNKNOWN_ERROR"
