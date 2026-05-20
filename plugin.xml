@@ -42,28 +42,28 @@
     </platform>
 
     <!-- ================= ANDROID ================= -->
-    <platform name="android">
+<platform name="android">
 
-        <source-file src="src/android/FacekiBlaze.java"
-                     target-dir="app/src/main/java/com/yourplugin" />
+    <source-file src="src/android/FacekiBlaze.java"
+                 target-dir="app/src/main/java/com/yourplugin" />
 
-        <config-file target="config.xml" parent="/*">
-            <feature name="FacekiBlaze">
-                <param name="android-package" value="com.yourplugin.FacekiBlaze"/>
-            </feature>
-        </config-file>
+    <config-file target="config.xml" parent="/*">
+        <feature name="FacekiBlaze">
+            <param name="android-package" value="com.yourplugin.FacekiBlaze"/>
+        </feature>
+    </config-file>
 
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="android.permission.CAMERA" />
-            <uses-permission android:name="android.permission.INTERNET" />
-        </config-file>
+    <config-file target="AndroidManifest.xml" parent="/manifest">
+        <uses-permission android:name="android.permission.CAMERA" />
+        <uses-permission android:name="android.permission.INTERNET" />
+    </config-file>
 
-        <!-- ✅ JitPack repository -->
-        <framework src="https://jitpack.io" type="gradleReference" />
+    <!-- ✅ REQUIRED -->
+    <framework src="https://jitpack.io" type="gradleReference" />
 
-        <!-- ✅ Faceki SDK -->
-        <framework src="com.github.faceki:blaze-android-sdk:2.1" type="gradleReference" />
+    <!-- ✅ REQUIRED -->
+    <framework src="com.github.faceki:blaze-android-sdk:2.1" type="gradleReference" />
 
-    </platform>
+</platform>
 
 </plugin>
