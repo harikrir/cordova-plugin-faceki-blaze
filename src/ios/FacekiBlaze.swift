@@ -9,9 +9,9 @@ class FacekiBlaze: CDVPlugin {
 
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
-
         self.callbackId = command.callbackId
 
+        // 1. Parameter Validation
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -19,71 +19,63 @@ class FacekiBlaze: CDVPlugin {
 
         guard let verificationLink = command.arguments[0] as? String,
               let workflowId = command.arguments[1] as? String else {
-
             sendError("Invalid parameters")
             return
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-
+        // 2. Safely bounce to the Main Thread for UI operations
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
             guard let cordovaVC = self.viewController else {
                 self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
+            // Guard against multiple SDK initialization overlays
             if cordovaVC.presentedViewController != nil {
                 self.sendError("VIEW_ALREADY_PRESENTED")
                 return
             }
 
-            // ✅ FIX: declare first
-            var sdkVC: UIViewController!
-
-            sdkVC = Logger.initiateSMSDK(
-
+            // 3. Initialize Faceki SDK (Version 3.2 Spec)
+            let sdkVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
-
                 setOnComplete: { [weak self] data in
-
                     guard let self = self else { return }
+                    print("✅ FACEKI SDK SUCCESS:", data)
 
-                    print("✅ SDK SUCCESS:", data)
-
-                    let resultData =
-                        (data as? [AnyHashable: Any])?["result"]
-                        as? [AnyHashable: Any] ?? [:]
-
+                    // Adapt AnyHashable native dictionary elements cleanly to JSON-compatible data
+                    let resultData = (data as? [AnyHashable: Any])?["result"] as? [String: Any] ?? [:]
+                    
                     self.sendSuccess([
                         "status": "SUCCESS",
                         "data": resultData
                     ])
 
+                    // Safely dismiss through parent context to avoid variable retention cycles
                     DispatchQueue.main.async {
-                        sdkVC.dismiss(animated: true)
+                        cordovaVC.dismiss(animated: true)
                     }
                 },
-
                 redirectBack: { [weak self] in
-
                     guard let self = self else { return }
-
-                    print("⚠️ SDK BACK")
+                    print("⚠️ FACEKI SDK CANCELLED")
 
                     self.sendErrorObject([
                         "status": "CANCELLED"
                     ])
 
                     DispatchQueue.main.async {
-                        sdkVC.dismiss(animated: true)
+                        cordovaVC.dismiss(animated: true)
                     }
                 },
-
-                selfieImageUrl: nil,
+                selfieImageUrl: nil, // Pass custom URLs if utilizing remote graphic assets
                 cardGuideUrl: nil
             )
 
-            // ✅ Force proper presentation
+            // 4. Standard Native Present (Fixes layout bugs inside WebViews)
             sdkVC.modalPresentationStyle = .fullScreen
             sdkVC.modalTransitionStyle = .crossDissolve
 
@@ -91,28 +83,19 @@ class FacekiBlaze: CDVPlugin {
         }
     }
 
-    // MARK: SUCCESS
+    // MARK: - Cordova Bridge Response Handlers
+
     private func sendSuccess(_ data: [String: Any]) {
-
         guard let callbackId = callbackId else { return }
-
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: data)
-            let jsonString = String(data: jsonData, encoding: .utf8)
-
-            let result = CDVPluginResult(
-                status: CDVCommandStatus_OK,
-                messageAs: jsonString
-            )
-
-            self.commandDelegate.send(result, callbackId: callbackId)
-
-        } catch {
-            sendError("JSON_SERIALIZATION_FAILED")
-        }
+        
+        // Cordova converts Swift Dictionaries natively; no stringifying needed!
+        let result = CDVPluginResult(
+            status: CDVCommandStatus_OK,
+            messageAs: data
+        )
+        self.commandDelegate.send(result, callbackId: callbackId)
     }
 
-    // MARK: ERROR
     private func sendError(_ message: String) {
         sendErrorObject([
             "status": "ERROR",
@@ -121,27 +104,12 @@ class FacekiBlaze: CDVPlugin {
     }
 
     private func sendErrorObject(_ obj: [String: Any]) {
-
         guard let callbackId = callbackId else { return }
-
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: obj)
-            let jsonString = String(data: jsonData, encoding: .utf8)
-
-            let result = CDVPluginResult(
-                status: CDVCommandStatus_ERROR,
-                messageAs: jsonString
-            )
-
-            self.commandDelegate.send(result, callbackId: callbackId)
-
-        } catch {
-            let fallback = CDVPluginResult(
-                status: CDVCommandStatus_ERROR,
-                messageAs: "UNKNOWN_ERROR"
-            )
-
-            self.commandDelegate.send(fallback, callbackId: callbackId)
-        }
+        
+        let result = CDVPluginResult(
+            status: CDVCommandStatus_ERROR,
+            messageAs: obj
+        )
+        self.commandDelegate.send(result, callbackId: callbackId)
     }
 }
