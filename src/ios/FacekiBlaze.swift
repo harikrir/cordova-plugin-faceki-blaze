@@ -6,13 +6,13 @@ import FACEKI_BLAZE_IOS
 class FacekiBlaze: CDVPlugin {
 
     private var callbackId: String?
-    private var navController: UINavigationController?
+    private weak var navController: UINavigationController?
 
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
-
         self.callbackId = command.callbackId
 
+        // 1. Structural Parameter Safeguards
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -24,67 +24,69 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        DispatchQueue.main.async {
-
+        // 2. Safely process entirely on Main Thread to protect layout targets
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
             guard let topVC = self.getTopViewController() else {
                 self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
-            // ✅ Create SDK VC (same as docs)
+            // 3. Initialize Faceki SDK Instance
             let sdkVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
-
                 setOnComplete: { [weak self] data in
                     guard let self = self else { return }
+                    print("✅ FACEKI SDK SUCCESS:", data)
 
-                    print("✅ SDK SUCCESS:", data)
-
-                    let resultData = (data as? [AnyHashable: Any])?["result"] as? [AnyHashable: Any] ?? [:]
-
-                    self.navController?.dismiss(animated: true)
-
+                    let resultData = (data as? [AnyHashable: Any])?["result"] as? [String: Any] ?? [:]
+                    
                     self.sendSuccess([
                         "status": "SUCCESS",
                         "data": resultData
                     ])
-                },
 
+                    // Safely dismiss via local parent stack assignment references
+                    DispatchQueue.main.async {
+                        self.navController?.dismiss(animated: true)
+                    }
+                },
                 redirectBack: { [weak self] in
                     guard let self = self else { return }
-
-                    print("⚠️ SDK BACK")
-
-                    self.navController?.dismiss(animated: true)
+                    print("⚠️ FACEKI SDK CANCELLED")
 
                     self.sendErrorObject([
                         "status": "CANCELLED"
                     ])
-                },
 
+                    DispatchQueue.main.async {
+                        self.navController?.dismiss(animated: true)
+                    }
+                },
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            // ✅ THIS IS THE KEY PART (MATCH DOC)
-            let navController = UINavigationController()
-            navController.modalPresentationStyle = .fullScreen
+            // 4. CRITICAL FIX FOR ALERT PRESENTATION WINDOW HIERARCHY
+            // We pass the sdkVC as the explicit root view controller *immediately*.
+            let navigationWrapper = UINavigationController(rootViewController: sdkVC)
+            navigationWrapper.modalPresentationStyle = .fullScreen
+            
+            // Assign to tracking wrapper variable
+            self.navController = navigationWrapper
 
-            self.navController = navController
-
-            // ✅ PRESENT NAV FIRST
-            topVC.present(navController, animated: true) {
-
-                // ✅ THEN PUSH INSIDE IT (exact SDK behavior)
-                navController.pushViewController(sdkVC, animated: true)
-            }
+            // We use animated: false here. This forces the Navigation window 
+            // hierarchy to mount instantaneously, ensuring that if the SDK pops a 
+            // camera/location/network error UIAlertController, it does not crash.
+            topVC.present(navigationWrapper, animated: false, completion: nil)
         }
     }
 
-    // ✅ Top controller helper
-    private func getTopViewController() -> UIViewController? {
+    // MARK: - Window Hierarchy Resolver
 
+    private func getTopViewController() -> UIViewController? {
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = scene.windows.first(where: { $0.isKeyWindow }) else {
             return nil
@@ -97,23 +99,19 @@ class FacekiBlaze: CDVPlugin {
         return topVC
     }
 
-    // MARK: SUCCESS
+    // MARK: - Cordova Native Bridge Communicators
+
     private func sendSuccess(_ data: [String: Any]) {
         guard let callbackId = callbackId else { return }
-
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: data)
-            let jsonString = String(data: jsonData, encoding: .utf8)
-
-            let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: jsonString)
-            self.commandDelegate.send(result, callbackId: callbackId)
-
-        } catch {
-            sendError("JSON_SERIALIZATION_FAILED")
-        }
+        
+        // Cordova natively translates standard Swift Dictionaries into JS JSON Objects.
+        let result = CDVPluginResult(
+            status: CDVCommandStatus_OK,
+            messageAs: data
+        )
+        self.commandDelegate.send(result, callbackId: callbackId)
     }
 
-    // MARK: ERROR
     private func sendError(_ message: String) {
         sendErrorObject([
             "status": "ERROR",
@@ -123,17 +121,11 @@ class FacekiBlaze: CDVPlugin {
 
     private func sendErrorObject(_ obj: [String: Any]) {
         guard let callbackId = callbackId else { return }
-
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: obj)
-            let jsonString = String(data: jsonData, encoding: .utf8)
-
-            let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: jsonString)
-            self.commandDelegate.send(result, callbackId: callbackId)
-
-        } catch {
-            let fallback = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "UNKNOWN_ERROR")
-            self.commandDelegate.send(fallback, callbackId: callbackId)
-        }
+        
+        let result = CDVPluginResult(
+            status: CDVCommandStatus_ERROR,
+            messageAs: obj
+        )
+        self.commandDelegate.send(result, callbackId: callbackId)
     }
 }
