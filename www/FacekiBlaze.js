@@ -1,3 +1,5 @@
+var exec = require('cordova/exec');
+
 var FacekiBlaze = {
 
   startVerification: function (verificationLink, workflowId, options) {
