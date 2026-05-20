@@ -13,39 +13,49 @@ class FacekiBlaze: CDVPlugin {
 
         self.callbackId = command.callbackId
 
-        // ✅ Validate input
-        guard command.arguments.count >= 3 else {
-            sendError("clientId, clientSecret, workflowId required")
+        // ✅ Expecting: verificationLink + workflowId
+        guard command.arguments.count >= 2 else {
+            sendError("verificationLink and workflowId required")
             return
         }
 
-        guard let clientId = command.arguments[0] as? String,
-              let clientSecret = command.arguments[1] as? String,
-              let workflowId = command.arguments[2] as? String else {
+        guard let verificationLink = command.arguments[0] as? String,
+              let workflowId = command.arguments[1] as? String else {
 
             sendError("Invalid parameters")
             return
         }
 
+        // ✅ Debug logs (VERY IMPORTANT)
+        print("✅ verificationLink:", verificationLink)
+        print("✅ workflowId:", workflowId)
+
         DispatchQueue.main.async {
 
             let sdkVC = Logger.initiateSMSDK(
-                setClientID: clientId,
-                setClientSecret: clientSecret,
+                verificationLink: verificationLink,
                 workflowId: workflowId,
 
                 setOnComplete: { data in
+                    print("✅ SDK SUCCESS:", data)
+
+                    let resultData = data as? [AnyHashable: Any] ?? [:]
+
                     let response: [String: Any] = [
                         "status": "SUCCESS",
-                        "data": data ?? [:]
+                        "data": resultData
                     ]
+
                     self.sendSuccess(response)
                 },
 
                 redirectBack: {
+                    print("⚠️ SDK CANCELLED")
+
                     let response: [String: Any] = [
                         "status": "CANCELLED"
                     ]
+
                     self.sendErrorObject(response)
                 },
 
@@ -58,12 +68,11 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
-            if let nav = rootVC.navigationController {
-                nav.pushViewController(sdkVC, animated: true)
-            } else {
-                let navController = UINavigationController(rootViewController: sdkVC)
-                rootVC.present(navController, animated: true, completion: nil)
-            }
+            // ✅ ALWAYS USE PRESENT (SDK-safe)
+            let navController = UINavigationController(rootViewController: sdkVC)
+            navController.modalPresentationStyle = .fullScreen
+
+            rootVC.present(navController, animated: true)
         }
     }
 
