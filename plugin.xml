@@ -50,27 +50,35 @@
 
 
     <!-- ================= ANDROID ================= -->
+ <!-- ✅ Android Platform -->
     <platform name="android">
+
+        <!-- ✅ Java class -->
+        <source-file src="src/android/FacekiBlaze.java"
+                     target-dir="app/src/main/java/com/yourplugin" />
 
         <!-- ✅ Register plugin -->
         <config-file target="config.xml" parent="/*">
             <feature name="FacekiBlaze">
-                <param name="android-package" value="com.faceki.blaze.FacekiBlaze" />
+                <param name="android-package" value="com.yourplugin.FacekiBlaze"/>
             </feature>
         </config-file>
 
-        <!-- ✅ Source file -->
-        <source-file src="src/android/FacekiBlaze.java"
-                     target-dir="app/src/main/java/com/faceki/blaze" />
-
-        <!-- ✅ SDK dependency -->
-        <framework src="com.github.faceki:blaze-android-sdk:1.0.2" />
-
-        <!-- ✅ Permissions (merge under same manifest) -->
+        <!-- ✅ Add permissions -->
         <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.CAMERA" />
+            <uses-permission android:name="android.permission.INTERNET" />
         </config-file>
+
+        <!-- ✅ Add Maven repository (jitpack required for Faceki SDK) -->
+        <config-file target="app/build.gradle" parent="allprojects/repositories">
+            <repository>
+                <url>https://jitpack.io</url>
+            </repository>
+        </config-file>
+
+        <!-- ✅ Add dependency -->
+        <framework src="com.github.faceki:blaze-android-sdk:2.1" />
 
     </platform>
 
