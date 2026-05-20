@@ -26,32 +26,46 @@ class FacekiBlaze: CDVPlugin {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
-            // Explicitly tie layout behavior down to Cordova's own view controller instance
             guard let cordovaVC = self.viewController else {
                 self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
                 return
             }
 
-            // 1. Initialize Faceki SDK directly
+            // 1. Initialize Faceki SDK matching documentation signatures exactly
             let facekiVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
-                setOnComplete: { [weak self] data in
+                setOnComplete: { [weak self] (data: [AnyHashable: Any]) in // 👈 Match doc type exactly
                     guard let self = self else { return }
                     print("✅ FACEKI SDK SUCCESS:", data)
 
-                    let resultData = (data as? [AnyHashable: Any])?["result"] as? [String: Any] ?? [:]
-                    self.sendSuccess(["status": "SUCCESS", "data": resultData])
+                    // Safely extract the result object exactly like the doc snippet
+                    let resultData = data["result"] as? [AnyHashable: Any] ?? [:]
+                    
+                    // Convert to String-keyed dictionary for clean JS translation
+                    var serializedData: [String: Any] = [:]
+                    for (key, value) in resultData {
+                        if let stringKey = key as? String {
+                            serializedData[stringKey] = value
+                        }
+                    }
+
+                    self.sendSuccess([
+                        "status": "SUCCESS",
+                        "data": serializedData
+                    ])
 
                     DispatchQueue.main.async {
                         self.removeSdkFromHierarchy()
                     }
                 },
-                redirectBack: { [weak self] in
+                redirectBack: { [weak self] in // 👈 Match onRedirectBack signature
                     guard let self = self else { return }
                     print("⚠️ FACEKI SDK CANCELLED")
 
-                    self.sendErrorObject(["status": "CANCELLED"])
+                    self.sendErrorObject([
+                        "status": "CANCELLED"
+                    ])
 
                     DispatchQueue.main.async {
                         self.removeSdkFromHierarchy()
@@ -63,13 +77,8 @@ class FacekiBlaze: CDVPlugin {
 
             self.sdkVC = facekiVC
 
-            // 2. CHILD VIEW CONTROLLER INJECTION TECHNIQUE
-            // Instead of .present(), we structurally attach facekiVC directly inside cordovaVC.
-            // This forces MainViewController to become the actual, direct parent container.
-            // If Faceki attempts to call alerts via MainViewController, it will work safely!
+            // 2. Child view integration loop to isolate MainViewController alert contexts
             cordovaVC.addChild(facekiVC)
-            
-            // Scale frame constraints to perfectly block/overlay the WebView area
             facekiVC.view.frame = cordovaVC.view.bounds
             facekiVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             
@@ -78,12 +87,10 @@ class FacekiBlaze: CDVPlugin {
         }
     }
 
-    // MARK: - Safe Removal Handler
+    // MARK: - Safe Structural Removal Handler
 
     private func removeSdkFromHierarchy() {
         guard let facekiVC = self.sdkVC else { return }
-        
-        // Formally untie child layout relationship structures smoothly 
         facekiVC.willMove(toParent: nil)
         facekiVC.view.removeFromSuperview()
         facekiVC.removeFromParent()
