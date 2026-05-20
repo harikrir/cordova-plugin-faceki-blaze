@@ -58,11 +58,16 @@
         <uses-permission android:name="android.permission.INTERNET" />
     </config-file>
 
- 
+    <!-- ✅ Inject repository -->
+    <framework src="src/android/build-extras.gradle"
+               custom="true"
+               type="gradleReference" />
 
-    <!-- ✅ REQUIRED -->
-    <framework src="com.github.faceki:blaze-android-sdk:2.1" type="gradleReference" />
+    <!-- ✅ Faceki SDK -->
+    <framework src="com.github.faceki:blaze-android-sdk:2.1"
+               type="gradleReference" />
 
 </platform>
+``
 
 </plugin>
