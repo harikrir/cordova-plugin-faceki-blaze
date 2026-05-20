@@ -7,13 +7,12 @@ class FacekiBlaze: CDVPlugin {
 
     var callbackId: String?
 
-    // MARK: - Entry Point
+    // MARK: Entry Point
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
 
         self.callbackId = command.callbackId
 
-        // ✅ Validate params
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -35,12 +34,11 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
-            // ✅ Create SDK VC
+            // ✅ Initialize SDK
             let sdkVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
-                // ✅ SUCCESS CALLBACK
                 setOnComplete: { data in
                     print("✅ SDK SUCCESS:", data)
 
@@ -54,57 +52,48 @@ class FacekiBlaze: CDVPlugin {
                     self.sendSuccess(response)
                 },
 
-                // ✅ CANCEL / BACK CALLBACK
                 redirectBack: {
-                    print("⚠️ SDK BACK / CANCEL")
+                    print("⚠️ SDK BACK")
 
                     DispatchQueue.main.async {
-                        if let topVC = self.getTopViewController() {
-                            if let nav = topVC.navigationController {
-                                nav.popToRootViewController(animated: true)
-                            } else {
-                                topVC.dismiss(animated: true)
-                            }
-                        }
+                        self.handleBackNavigation()
                     }
 
-                    let response: [String: Any] = [
+                    self.sendErrorObject([
                         "status": "CANCELLED"
-                    ]
-
-                    self.sendErrorObject(response)
+                    ])
                 },
 
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            // ✅ SAFE NAVIGATION (TOP VC BASED)
+            // ✅ ✅ IMPORTANT: Always PRESENT (NOT PUSH)
+            // 👉 This avoids all OutSystems navigation issues
 
-            if let nav = topVC as? UINavigationController {
-                print("✅ Top is navigation controller → push")
-                nav.pushViewController(sdkVC, animated: true)
+            let navController = UINavigationController(rootViewController: sdkVC)
+            navController.modalPresentationStyle = .fullScreen
 
+            topVC.present(navController, animated: true)
+        }
+    }
+
+    // ✅ Handle back safely
+    private func handleBackNavigation() {
+        if let topVC = getTopViewController() {
+            if topVC.presentingViewController != nil {
+                topVC.dismiss(animated: true)
             } else if let nav = topVC.navigationController {
-                print("✅ Using existing navigationController → push")
-                nav.pushViewController(sdkVC, animated: true)
-
-            } else {
-                print("⚠️ No navigation → present safely")
-
-                let navController = UINavigationController(rootViewController: sdkVC)
-                navController.modalPresentationStyle = .fullScreen
-
-                topVC.present(navController, animated: true)
+                nav.popToRootViewController(animated: true)
             }
         }
     }
 
-    // ✅ CRITICAL: Get TOP visible controller (fixes your error)
+    // ✅ Get REAL visible controller (critical for OutSystems)
     private func getTopViewController() -> UIViewController? {
 
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = scene.windows.first else {
+              let window = scene.windows.first(where: { $0.isKeyWindow }) else {
             return nil
         }
 
@@ -117,7 +106,7 @@ class FacekiBlaze: CDVPlugin {
         return topVC
     }
 
-    // MARK: - SUCCESS
+    // MARK: SUCCESS
     private func sendSuccess(_ data: [String: Any]) {
         guard let callbackId = callbackId else { return }
 
@@ -133,7 +122,7 @@ class FacekiBlaze: CDVPlugin {
         }
     }
 
-    // MARK: - ERROR
+    // MARK: ERROR
     private func sendError(_ message: String) {
         sendErrorObject([
             "status": "ERROR",
