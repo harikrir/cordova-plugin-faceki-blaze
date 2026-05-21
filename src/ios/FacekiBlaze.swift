@@ -129,4 +129,3 @@ class FacekiBlaze: CDVPlugin {
         self.callbackId = nil
     }
 }
-``
