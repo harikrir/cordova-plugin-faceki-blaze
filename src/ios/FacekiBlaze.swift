@@ -73,16 +73,16 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
-            // ✅ Wrap in Navigation Controller
+            // ✅ Wrap SDK in navigation controller
             let navController = UINavigationController(rootViewController: facekiVC)
             navController.modalPresentationStyle = .fullScreen
 
-            // ✅ ✅ CRITICAL FIX: Run SDK in separate UIWindow
+            // ✅ Present via isolated UIWindow (FIX)
             self.presentSDK(navController)
         }
     }
 
-    // ✅ Present SDK in isolated UIWindow (MAIN FIX)
+    // ✅ ✅ FINAL FIX: Stable UIWindow presentation
     private func presentSDK(_ vc: UIViewController) {
 
         let window = UIWindow(frame: UIScreen.main.bounds)
@@ -92,13 +92,19 @@ class FacekiBlaze: CDVPlugin {
 
         window.rootViewController = rootVC
         window.windowLevel = UIWindow.Level.alert + 1
+
+        // ✅ Step 1: Make visible
         window.makeKeyAndVisible()
 
-        rootVC.present(vc, animated: true)
-
+        // ✅ Keep strong reference
         self.sdkWindow = window
 
-        print("✅ SDK Presented using UIWindow")
+        // ✅ Step 2: Ensure hierarchy is ready before presenting
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            rootVC.present(vc, animated: true) {
+                print("✅ SDK Presented using UIWindow")
+            }
+        }
     }
 
     // ✅ Dismiss SDK cleanly
