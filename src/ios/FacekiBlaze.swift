@@ -27,10 +27,13 @@ class FacekiBlaze: CDVPlugin {
 
         DispatchQueue.main.async {
 
-            guard let cordovaVC = self.viewController else {
-                self.sendError("NO_ACTIVE_VIEW_CONTROLLER")
+            guard let topVC = self.getTopViewController() else {
+                self.sendError("NO_TOP_VIEW_CONTROLLER")
                 return
             }
+
+            // ✅ IMPORTANT for .overCurrentContext SDKs
+            topVC.definesPresentationContext = true
 
             // ✅ Initialize SDK
             let facekiVC = Logger.initiateSMSDK(
@@ -44,26 +47,28 @@ class FacekiBlaze: CDVPlugin {
 
                         print("✅ FACEKI SUCCESS:", data)
 
-                        let dict = data as? [AnyHashable: Any]
-                        let resultData = dict?["result"] as? [AnyHashable: Any] ?? [:]
+                        if let dict = data as? [AnyHashable: Any] {
+                            var serialized: [String: Any] = [:]
 
-                        var serialized: [String: Any] = [:]
-                        for (k, v) in resultData {
-                            if let key = k as? String {
-                                serialized[key] = v
+                            for (k, v) in dict {
+                                if let key = k as? String {
+                                    serialized[key] = v
+                                }
                             }
-                        }
 
-                        self.sendSuccess([
-                            "status": "SUCCESS",
-                            "data": serialized
-                        ])
+                            self.sendSuccess([
+                                "status": "SUCCESS",
+                                "data": serialized
+                            ])
+                        } else {
+                            self.sendError("INVALID_CALLBACK_DATA")
+                        }
 
                         self.dismissSDK()
                     }
                 },
 
-                // ✅ CANCEL / BACK CALLBACK
+                // ✅ CANCEL CALLBACK
                 redirectBack: { [weak self] in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
@@ -82,17 +87,38 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
-            // ✅ CRITICAL FIX: Present modally (NOT embed)
-            let navController = UINavigationController(rootViewController: facekiVC)
-            navController.modalPresentationStyle = .fullScreen
+            // ✅ Delay prevents hierarchy crash in Cordova
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
 
-            cordovaVC.present(navController, animated: true)
+                let navController = UINavigationController(rootViewController: facekiVC)
+                navController.modalPresentationStyle = .fullScreen
 
-            self.sdkVC = navController
+                topVC.present(navController, animated: true) {
+                    print("✅ SDK presented successfully")
+                }
+
+                self.sdkVC = navController
+            }
         }
     }
 
-    // ✅ DISMISS SDK SAFELY
+    // ✅ Get top-most ViewController (CRITICAL FIX)
+    private func getTopViewController() -> UIViewController? {
+
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first(where: { $0.isKeyWindow }),
+              var top = window.rootViewController else {
+            return nil
+        }
+
+        while let presented = top.presentedViewController {
+            top = presented
+        }
+
+        return top
+    }
+
+    // ✅ Dismiss safely
     private func dismissSDK() {
         DispatchQueue.main.async {
             self.sdkVC?.dismiss(animated: true, completion: nil)
