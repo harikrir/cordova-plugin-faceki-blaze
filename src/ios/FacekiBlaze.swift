@@ -13,6 +13,7 @@ class FacekiBlaze: CDVPlugin {
 
         self.callbackId = command.callbackId
 
+        // ✅ Validate input
         guard command.arguments.count >= 2 else {
             sendError("verificationLink and workflowId required")
             return
@@ -31,86 +32,101 @@ class FacekiBlaze: CDVPlugin {
                 return
             }
 
+            // ✅ Initialize SDK
             let facekiVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
 
-                // ✅ IMPORTANT FIX (use Any)
+                // ✅ SUCCESS CALLBACK
                 setOnComplete: { [weak self] data in
-                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
 
-                    print("✅ FACEKI SUCCESS:", data)
+                        print("✅ FACEKI SUCCESS:", data)
 
-                    let dict = data as? [AnyHashable: Any]
-                    let resultData = dict?["result"] as? [AnyHashable: Any] ?? [:]
+                        let dict = data as? [AnyHashable: Any]
+                        let resultData = dict?["result"] as? [AnyHashable: Any] ?? [:]
 
-                    var serialized: [String: Any] = [:]
-                    for (k, v) in resultData {
-                        if let key = k as? String {
-                            serialized[key] = v
+                        var serialized: [String: Any] = [:]
+                        for (k, v) in resultData {
+                            if let key = k as? String {
+                                serialized[key] = v
+                            }
                         }
+
+                        self.sendSuccess([
+                            "status": "SUCCESS",
+                            "data": serialized
+                        ])
+
+                        self.dismissSDK()
                     }
-
-                    self.sendSuccess([
-                        "status": "SUCCESS",
-                        "data": serialized
-                    ])
-
-                    self.removeSdkFromHierarchy()
                 },
 
+                // ✅ CANCEL / BACK CALLBACK
                 redirectBack: { [weak self] in
-                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
 
-                    print("⚠️ FACEKI CANCELLED")
+                        print("⚠️ FACEKI CANCELLED")
 
-                    self.sendErrorObject([
-                        "status": "CANCELLED"
-                    ])
+                        self.sendErrorObject([
+                            "status": "CANCELLED"
+                        ])
 
-                    self.removeSdkFromHierarchy()
+                        self.dismissSDK()
+                    }
                 },
 
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            self.sdkVC = facekiVC
+            // ✅ CRITICAL FIX: Present modally (NOT embed)
+            let navController = UINavigationController(rootViewController: facekiVC)
+            navController.modalPresentationStyle = .fullScreen
 
-            // ✅ EMBED SDK VIEW (correct approach)
-            cordovaVC.addChild(facekiVC)
-            facekiVC.view.frame = cordovaVC.view.bounds
-            facekiVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            cordovaVC.present(navController, animated: true)
 
-            cordovaVC.view.addSubview(facekiVC.view)
-            facekiVC.didMove(toParent: cordovaVC)
+            self.sdkVC = navController
         }
     }
 
-    // ✅ CLEAN REMOVE
-    private func removeSdkFromHierarchy() {
-        guard let vc = sdkVC else { return }
-        vc.willMove(toParent: nil)
-        vc.view.removeFromSuperview()
-        vc.removeFromParent()
-        sdkVC = nil
+    // ✅ DISMISS SDK SAFELY
+    private func dismissSDK() {
+        DispatchQueue.main.async {
+            self.sdkVC?.dismiss(animated: true, completion: nil)
+            self.sdkVC = nil
+        }
     }
 
-    // ✅ SUCCESS
+    // ✅ SUCCESS RESPONSE
     private func sendSuccess(_ data: [String: Any]) {
         guard let callbackId = callbackId else { return }
+
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: data)
+        result?.setKeepCallbackAs(false)
+
         self.commandDelegate.send(result, callbackId: callbackId)
+        self.callbackId = nil
     }
 
-    // ✅ ERROR
+    // ✅ ERROR RESPONSE
     private func sendError(_ message: String) {
-        sendErrorObject(["status": "ERROR", "message": message])
+        sendErrorObject([
+            "status": "ERROR",
+            "message": message
+        ])
     }
 
     private func sendErrorObject(_ obj: [String: Any]) {
         guard let callbackId = callbackId else { return }
+
         let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: obj)
+        result?.setKeepCallbackAs(false)
+
         self.commandDelegate.send(result, callbackId: callbackId)
+        self.callbackId = nil
     }
 }
+``
