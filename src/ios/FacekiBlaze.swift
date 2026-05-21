@@ -6,7 +6,7 @@ import FACEKI_BLAZE_IOS
 class FacekiBlaze: CDVPlugin {
 
     private var callbackId: String?
-    private weak var sdkVC: UIViewController?
+    private var sdkWindow: UIWindow?
 
     @objc(startVerification:)
     func startVerification(command: CDVInvokedUrlCommand) {
@@ -14,26 +14,14 @@ class FacekiBlaze: CDVPlugin {
         self.callbackId = command.callbackId
 
         // ✅ Validate input
-        guard command.arguments.count >= 2 else {
-            sendError("verificationLink and workflowId required")
-            return
-        }
-
-        guard let verificationLink = command.arguments[0] as? String,
+        guard command.arguments.count >= 2,
+              let verificationLink = command.arguments[0] as? String,
               let workflowId = command.arguments[1] as? String else {
             sendError("Invalid parameters")
             return
         }
 
         DispatchQueue.main.async {
-
-            guard let topVC = self.getTopViewController() else {
-                self.sendError("NO_TOP_VIEW_CONTROLLER")
-                return
-            }
-
-            // ✅ IMPORTANT for .overCurrentContext SDKs
-            topVC.definesPresentationContext = true
 
             // ✅ Initialize SDK
             let facekiVC = Logger.initiateSMSDK(
@@ -45,24 +33,22 @@ class FacekiBlaze: CDVPlugin {
                     DispatchQueue.main.async {
                         guard let self = self else { return }
 
-                        print("✅ FACEKI SUCCESS:", data)
+                        print("✅ FACEKI SUCCESS:", data ?? "")
+
+                        var serialized: [String: Any] = [:]
 
                         if let dict = data as? [AnyHashable: Any] {
-                            var serialized: [String: Any] = [:]
-
                             for (k, v) in dict {
                                 if let key = k as? String {
                                     serialized[key] = v
                                 }
                             }
-
-                            self.sendSuccess([
-                                "status": "SUCCESS",
-                                "data": serialized
-                            ])
-                        } else {
-                            self.sendError("INVALID_CALLBACK_DATA")
                         }
+
+                        self.sendSuccess([
+                            "status": "SUCCESS",
+                            "data": serialized
+                        ])
 
                         self.dismissSDK()
                     }
@@ -87,42 +73,39 @@ class FacekiBlaze: CDVPlugin {
                 cardGuideUrl: nil
             )
 
-            // ✅ Delay prevents hierarchy crash in Cordova
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            // ✅ Wrap in Navigation Controller
+            let navController = UINavigationController(rootViewController: facekiVC)
+            navController.modalPresentationStyle = .fullScreen
 
-                let navController = UINavigationController(rootViewController: facekiVC)
-                navController.modalPresentationStyle = .fullScreen
-
-                topVC.present(navController, animated: true) {
-                    print("✅ SDK presented successfully")
-                }
-
-                self.sdkVC = navController
-            }
+            // ✅ ✅ CRITICAL FIX: Run SDK in separate UIWindow
+            self.presentSDK(navController)
         }
     }
 
-    // ✅ Get top-most ViewController (CRITICAL FIX)
-    private func getTopViewController() -> UIViewController? {
+    // ✅ Present SDK in isolated UIWindow (MAIN FIX)
+    private func presentSDK(_ vc: UIViewController) {
 
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = scene.windows.first(where: { $0.isKeyWindow }),
-              var top = window.rootViewController else {
-            return nil
-        }
+        let window = UIWindow(frame: UIScreen.main.bounds)
 
-        while let presented = top.presentedViewController {
-            top = presented
-        }
+        let rootVC = UIViewController()
+        rootVC.view.backgroundColor = .black
 
-        return top
+        window.rootViewController = rootVC
+        window.windowLevel = UIWindow.Level.alert + 1
+        window.makeKeyAndVisible()
+
+        rootVC.present(vc, animated: true)
+
+        self.sdkWindow = window
+
+        print("✅ SDK Presented using UIWindow")
     }
 
-    // ✅ Dismiss safely
+    // ✅ Dismiss SDK cleanly
     private func dismissSDK() {
         DispatchQueue.main.async {
-            self.sdkVC?.dismiss(animated: true, completion: nil)
-            self.sdkVC = nil
+            self.sdkWindow?.isHidden = true
+            self.sdkWindow = nil
         }
     }
 
