@@ -13,7 +13,7 @@ class FacekiBlaze: CDVPlugin {
 
         self.callbackId = command.callbackId
 
-        // ✅ Validate input
+        // 1. Validate inputs
         guard command.arguments.count >= 2,
               let verificationLink = command.arguments[0] as? String,
               let workflowId = command.arguments[1] as? String else {
@@ -21,27 +21,23 @@ class FacekiBlaze: CDVPlugin {
             return
         }
 
-        DispatchQueue.main.async {
+        // 2. Marshall directly onto the main UI thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
 
-            // ✅ Initialize SDK
+            // 3. Initialize Faceki SDK 
             let facekiVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
                 workflowId: workflowId,
-
-                // ✅ SUCCESS CALLBACK
-                setOnComplete: { [weak self] data in
+                setOnComplete: { [weak self] (data: [AnyHashable: Any]) in // 👈 Explicit type added here to prevent compilation errors
                     DispatchQueue.main.async {
                         guard let self = self else { return }
-
-                        print("✅ FACEKI SUCCESS:", data ?? "")
+                        print("✅ FACEKI SUCCESS:", data)
 
                         var serialized: [String: Any] = [:]
-
-                        if let dict = data as? [AnyHashable: Any] {
-                            for (k, v) in dict {
-                                if let key = k as? String {
-                                    serialized[key] = v
-                                }
+                        for (k, v) in data {
+                            if let key = k as? String {
+                                serialized[key] = v
                             }
                         }
 
@@ -53,12 +49,9 @@ class FacekiBlaze: CDVPlugin {
                         self.dismissSDK()
                     }
                 },
-
-                // ✅ CANCEL CALLBACK
                 redirectBack: { [weak self] in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
-
                         print("⚠️ FACEKI CANCELLED")
 
                         self.sendErrorObject([
@@ -68,54 +61,54 @@ class FacekiBlaze: CDVPlugin {
                         self.dismissSDK()
                     }
                 },
-
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
 
-            // ✅ Wrap SDK in navigation controller
+            // 4. Wrap Faceki VC inside our navigation controller directly
             let navController = UINavigationController(rootViewController: facekiVC)
             navController.modalPresentationStyle = .fullScreen
+            
+            // Explicitly force the navigation bar to stay visible for Faceki steps
+            navController.setNavigationBarHidden(false, animated: false)
 
-            // ✅ Present via isolated UIWindow (FIX)
+            // 5. Present the entire layout structural stack cleanly
             self.presentSDK(navController)
         }
     }
 
-    // ✅ ✅ FINAL FIX: Stable UIWindow presentation
-    private func presentSDK(_ vc: UIViewController) {
+    // MARK: - Window Management Strategy
 
+    private func presentSDK(_ navigationController: UINavigationController) {
+        // Create an isolated window spanning the entire physical screen estate
         let window = UIWindow(frame: UIScreen.main.bounds)
-
-        let rootVC = UIViewController()
-        rootVC.view.backgroundColor = .black
-
-        window.rootViewController = rootVC
+        
+        // NO MORE TIMING DELAYS: Make the navigation controller the direct root of the window
+        window.rootViewController = navigationController
+        
+        // Elevate the level just above standard layers to visually hide background web content safely
         window.windowLevel = UIWindow.Level.alert + 1
-
-        // ✅ Step 1: Make visible
+        
+        // Make it visible immediately (0ms transition window latency)
         window.makeKeyAndVisible()
-
-        // ✅ Keep strong reference
+        
+        // Retain strongly to keep the UI pipeline active
         self.sdkWindow = window
-
-        // ✅ Step 2: Ensure hierarchy is ready before presenting
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            rootVC.present(vc, animated: true) {
-                print("✅ SDK Presented using UIWindow")
-            }
-        }
+        
+        print("✅ SDK window mounted instantly as window root layout target.")
     }
 
-    // ✅ Dismiss SDK cleanly
     private func dismissSDK() {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            // Completely tear down and drop window resources to restore control to the Cordova Webview
             self.sdkWindow?.isHidden = true
             self.sdkWindow = nil
         }
     }
 
-    // ✅ SUCCESS RESPONSE
+    // MARK: - Cordova Native Bridge Responses
+
     private func sendSuccess(_ data: [String: Any]) {
         guard let callbackId = callbackId else { return }
 
@@ -126,7 +119,6 @@ class FacekiBlaze: CDVPlugin {
         self.callbackId = nil
     }
 
-    // ✅ ERROR RESPONSE
     private func sendError(_ message: String) {
         sendErrorObject([
             "status": "ERROR",
