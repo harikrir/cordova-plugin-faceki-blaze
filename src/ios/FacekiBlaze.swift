@@ -49,9 +49,8 @@ class FacekiBlaze: CDVPlugin {
                         self.dismissSDK()
                     }
                 },
-                redirectBack: { [weak self] in
-                    DispatchQueue.main.async {
-                        guard let self = self else { return }
+                redirectBack: {                  
+                     
                         print("⚠️ FACEKI CANCELLED")
 
                         self.sendErrorObject([
@@ -59,7 +58,7 @@ class FacekiBlaze: CDVPlugin {
                         ])
 
                         self.dismissSDK()
-                    }
+                    
                 },
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
