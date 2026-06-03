@@ -30,7 +30,7 @@ class FacekiBlaze: CDVPlugin {
 let onRedirectBack: () -> Void = { [weak self] in
     guard let self = self else { return }
 
-    NSLog("✅ redirectBack triggered")
+    NSLog("FACEKI redirectBack triggered")
 
     self.sendErrorObject([
         "status": "CANCELLED"
@@ -47,7 +47,7 @@ let onRedirectBack: () -> Void = { [weak self] in
                 setOnComplete: { [weak self] (data: [AnyHashable: Any]) in // 👈 Explicit type added here to prevent compilation errors
                     DispatchQueue.main.async {
                         guard let self = self else { return }
-                        NSLog("✅ FACEKI SUCCESS:", data)
+                        NSLog("FACEKI SUCCESS:", data)
 
                         var serialized: [String: Any] = [:]
                         for (k, v) in data {
@@ -99,7 +99,7 @@ let onRedirectBack: () -> Void = { [weak self] in
         // Retain strongly to keep the UI pipeline active
         self.sdkWindow = window
         
-        NSLog("✅ SDK window mounted instantly as window root layout target.")
+        NSLog("FACEKI SDK window mounted instantly as window root layout target.")
     }
 
     private func dismissSDK() {
