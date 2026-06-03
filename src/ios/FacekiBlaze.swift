@@ -25,6 +25,21 @@ class FacekiBlaze: CDVPlugin {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
+
+                                  
+let onRedirectBack: () -> Void = { [weak self] in
+    guard let self = self else { return }
+
+    print("✅ redirectBack triggered")
+
+    self.sendErrorObject([
+        "status": "CANCELLED"
+    ])
+
+    self.dismissSDK()
+}
+
+
             // 3. Initialize Faceki SDK 
             let facekiVC = Logger.initiateSMSDK(
                 verificationLink: verificationLink,
@@ -49,17 +64,7 @@ class FacekiBlaze: CDVPlugin {
                         self.dismissSDK()
                     }
                 },
-                redirectBack: {                  
-                     
-                        print("⚠️ FACEKI CANCELLED")
-
-                        self.sendErrorObject([
-                            "status": "CANCELLED"
-                        ])
-
-                        self.dismissSDK()
-                    
-                },
+                redirectBack: onRedirectBack,
                 selfieImageUrl: nil,
                 cardGuideUrl: nil
             )
