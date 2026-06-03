@@ -33,10 +33,10 @@
             </pods>
         </podspec>
 
-   
- <edit-config file="*-Info.plist" target="NSCameraUsageDescription" mode="merge">
+               
+ <config-file target="*-Info.plist" parent="NSCameraUsageDescription">
         <string>Camera is required for identity verification</string>
-    </edit-config>
+    </config-file>
 
 
     </platform>
