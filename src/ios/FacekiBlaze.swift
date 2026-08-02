@@ -67,15 +67,15 @@ let onRedirectBack: () -> Void = { [weak self] in
                         self.dismissSDK()
                     }
                 },
-                redirectBack: onRedirectBack,
-                onCancel: onRedirectBack,
-                 primaryButtonColor: hexColor(primaryThemeColor),
+                redirectBack: onRedirectBack,          
+                selfieImageUrl: nil,               
+                cardGuideUrl: nil,
+                 termsAndConditionsUrl: nil,
+            onCancel: onRedirectBack,
+            primaryButtonColor: hexColor(primaryThemeColor),
             textColor: hexColor(textThemeColor),
             headingColor: hexColor(primaryThemeColor),
-            cameraPageTitleColor: hexColor(primaryThemeColor),
-                selfieImageUrl: nil,
-                termsAndConditionsUrl:nil,
-                cardGuideUrl: nil
+            cameraPageTitleColor: hexColor(primaryThemeColor)
             )
 
             // 4. Wrap Faceki VC inside our navigation controller directly
