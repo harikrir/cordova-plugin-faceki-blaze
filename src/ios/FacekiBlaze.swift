@@ -74,6 +74,7 @@ let onRedirectBack: () -> Void = { [weak self] in
             headingColor: hexColor(primaryThemeColor),
             cameraPageTitleColor: hexColor(primaryThemeColor),
                 selfieImageUrl: nil,
+                termsAndConditionsUrl:nil,
                 cardGuideUrl: nil
             )
 
