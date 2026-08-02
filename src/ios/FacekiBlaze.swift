@@ -46,8 +46,7 @@ let onRedirectBack: () -> Void = { [weak self] in
 
             // 3. Initialize Faceki SDK 
             let facekiVC = Logger.initiateSMSDK(
-                verificationLink: verificationLink,
-                workflowId: workflowId,
+                verificationLink: verificationLink,            
                 setOnComplete: { [weak self] (data: [AnyHashable: Any]) in // 👈 Explicit type added here to prevent compilation errors
                     DispatchQueue.main.async {
                         guard let self = self else { return }
