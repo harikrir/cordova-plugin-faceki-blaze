@@ -8,7 +8,7 @@ class FacekiBlaze: CDVPlugin {
     private var callbackId: String?
     private var sdkWindow: UIWindow?
 
-      private let primaryThemeColor = "#38B34A"
+      private let primaryThemeColor = "#24604F"
     private let textThemeColor = "#111111"
 
     @objc(startVerification:)
