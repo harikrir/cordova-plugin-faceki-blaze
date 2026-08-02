@@ -42,21 +42,7 @@ let onRedirectBack: () -> Void = { [weak self] in
     self.dismissSDK()
 }
 
-                                   private func hexColor(_ hex: String) -> UIColor {
-        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        cleaned = cleaned.replacingOccurrences(of: "#", with: "")
-
-        var rgb: UInt64 = 0
-        Scanner(string: cleaned).scanHexInt64(&rgb)
-
-        return UIColor(
-            red: CGFloat((rgb & 0xFF0000) >> 16) / 255.0,
-            green: CGFloat((rgb & 0x00FF00) >> 8) / 255.0,
-            blue: CGFloat(rgb & 0x0000FF) / 255.0,
-            alpha: 1.0
-        )
-    }
-
+              
 
             // 3. Initialize Faceki SDK 
             let facekiVC = Logger.initiateSMSDK(
@@ -107,7 +93,21 @@ let onRedirectBack: () -> Void = { [weak self] in
     // MARK: - Window Management Strategy
 
 
-    
+                         private func hexColor(_ hex: String) -> UIColor {
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        cleaned = cleaned.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+        Scanner(string: cleaned).scanHexInt64(&rgb)
+
+        return UIColor(
+            red: CGFloat((rgb & 0xFF0000) >> 16) / 255.0,
+            green: CGFloat((rgb & 0x00FF00) >> 8) / 255.0,
+            blue: CGFloat(rgb & 0x0000FF) / 255.0,
+            alpha: 1.0
+        )
+    }
+
 
     private func presentSDK(_ navigationController: UINavigationController) {
         // Create an isolated window spanning the entire physical screen estate
