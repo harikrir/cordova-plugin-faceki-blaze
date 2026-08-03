@@ -5,6 +5,8 @@ import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+
 // ✅ FINAL CORRECT IMPORTS
 import com.faceki.android.FaceKi;
 import com.faceki.android.KycResponseHandler;
@@ -42,6 +44,15 @@ public class FacekiBlaze extends CordovaPlugin {
         Activity activity = cordova.getActivity();
 
         activity.runOnUiThread(() -> {
+
+       
+HashMap<FaceKi.ColorElement, FaceKi.ColorValue> colorMap = new HashMap<>();
+
+colorMap.put(FaceKi.ColorElement.BackgroundColor,new FaceKi.ColorValue.StringColor("#FFFFFF"));
+
+colorMap.put(FaceKi.ColorElement.ButtonBackgroundColor,new FaceKi.ColorValue.StringColor("#24604F"));
+
+FaceKi.setCustomColors(colorMap);
 
             FaceKi.startKycVerification(
                 activity,
