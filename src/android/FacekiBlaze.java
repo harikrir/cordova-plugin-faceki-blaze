@@ -48,9 +48,11 @@ public class FacekiBlaze extends CordovaPlugin {
        
 HashMap<FaceKi.ColorElement, FaceKi.ColorValue> colorMap = new HashMap<>();
 
-colorMap.put(FaceKi.ColorElement.BackgroundColor,new FaceKi.ColorValue.StringColor("#FFFFFF"));
+colorMap.put(FaceKi.ColorElement.BackgroundColor, new FaceKi.ColorValue.StringColor("#FFFFFF"));
+colorMap.put(FaceKi.ColorElement.ButtonBackgroundColor, new FaceKi.ColorValue.StringColor("#24604F"));
+colorMap.put(FaceKi.ColorElement.ButtonTextColor, new FaceKi.ColorValue.StringColor("#FFFFFF"));
+colorMap.put(FaceKi.ColorElement.TitleTextColor, new FaceKi.ColorValue.StringColor("#24604F"));
 
-colorMap.put(FaceKi.ColorElement.ButtonBackgroundColor,new FaceKi.ColorValue.StringColor("#24604F"));
 
 FaceKi.setCustomColors(colorMap);
 
