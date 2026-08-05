@@ -64,7 +64,7 @@
                type="gradleReference" />
 
     <!-- ✅ Faceki SDK -->
-    <framework src="com.github.faceki:blaze-android-sdk:2.1"
+    <framework src="com.github.faceki:blaze-android-sdk:2.2"
                type="gradleReference" />
 
 </platform>
